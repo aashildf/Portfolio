@@ -372,13 +372,12 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
             {
               tittel: "API & data",
               innhold: "Fetch, async/await",
-              forklaring:
-                "Henter, viser og visualiserer data på en enkel måte.",
+              forklaring: "Henter og visualiserer data på en tydelig måte.",
             },
             {
               tittel: "Design",
               innhold: "Figma, UI/UX",
-              forklaring: "Skisser og prototyper i Figma før implementering.",
+              forklaring: "Jeg utforsker design og former idéer visuelt før de blir til kode.",
             },
             {
               tittel: "Interaktivitet",
