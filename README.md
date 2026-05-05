@@ -3,7 +3,7 @@
 
 
 
-![Portfolio 2026 screenshot](./public/skjermbilde.png)
+![Portfolio 2026 screenshot](./public/Skjermbilde.png)
 
 Personlig porteføljenettsted som viser hvordan jeg jobber med frontend, UI-design og visuelle brukeropplevelser gjennom egne prosjekter.
 
