@@ -1,0 +1,110 @@
+/* ─── Design Tokens ──────────────────────────────────────────────────────────
+   Kilde til sannhet for hele porteføljen.
+   Importeres først i index.css.
+
+   Breakpoints (kan ikke brukes i @media via var() — bruk tallene direkte):
+     sm:   600px  →  isMobile-grense  (matcher JS < 600)
+     md:  1050px  →  isTablet-grense  (matcher JS < 1050)
+     lg:  1400px  →  stor skjerm
+──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+
+  /* ── Farger ─────────────────────────────────────────────────────────────── */
+
+  /* Bakgrunn og flater */
+  --color-bg:     #faf8f5;   /* sidens bakgrunn                               */
+  --color-white:  #ffffff;   /* kortflater, forside                           */
+  --color-cream:  #f5f2ee;   /* kortbakside, lyse paneler                     */
+  --color-beige:  #d8d0c8;   /* bildeplassholdere, nøytral fyllfarge          */
+  --color-sage:   #c4d0be;   /* naturlig aksent (kopp-kort o.l.)              */
+
+  /* Aksentfarger */
+  --color-teal:   #7da8b2;   /* kanter, ikoner, detaljer                      */
+  --color-navy:   #162e42;   /* ikoner, lenker, mørk tekst                    */
+
+  /* Tekst */
+  --color-text:        #333333;          /* brødtekst                         */
+  --color-text-mid:    #555555;          /* sekundær tekst på kort            */
+  --color-text-muted:  #888888;          /* svak tekst — obs: WCAG-grense     */
+
+  /* Strukturelt */
+  --color-border: rgba(0, 0, 0, 0.09);  /* subtil bildekant mot hvit ramme   */
+
+
+  /* ── Typografi ───────────────────────────────────────────────────────────── */
+
+  --font-hand: 'Caveat', cursive;
+  --font-ui:   'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  /* Skala — major third (×1.25) */
+  --text-xs:   0.75rem;    /*  12px */
+  --text-sm:   0.875rem;   /*  14px */
+  --text-base: 1rem;       /*  16px */
+  --text-md:   1.125rem;   /*  18px */
+  --text-lg:   1.25rem;    /*  20px */
+  --text-xl:   1.5rem;     /*  24px */
+  --text-2xl:  1.875rem;   /*  30px */
+
+  --leading-tight:  1.2;
+  --leading-normal: 1.6;
+  --leading-loose:  1.8;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-bold:   700;
+
+
+  /* ── Spacing — 4px-base ─────────────────────────────────────────────────── */
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+
+  /* ── Skygger ─────────────────────────────────────────────────────────────── */
+
+  /* Brukes på alle kort — polaroid-følelse, tre lag for dybde              */
+  --shadow-card:
+    0  2px  4px  rgba(0, 0, 0, 0.06),
+    0  8px  20px rgba(0, 0, 0, 0.10),
+    0 20px  40px rgba(0, 0, 0, 0.08);
+
+  /* Hover-løft — jevn intensitetsøkning, ikke bare offset-endring          */
+  --shadow-card-hover:
+    0  4px  8px  rgba(0, 0, 0, 0.08),
+    0 12px  28px rgba(0, 0, 0, 0.14),
+    0 24px  48px rgba(0, 0, 0, 0.10);
+
+
+  /* ── Border radius ───────────────────────────────────────────────────────── */
+
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-full: 9999px;
+
+
+  /* ── Motion ──────────────────────────────────────────────────────────────── */
+
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:   cubic-bezier(0.22, 0.61, 0.36, 1);  /* brukes i Framer   */
+  --duration-fast: 0.18s;
+  --duration-mid:  0.35s;
+  --duration-slow: 0.55s;
+
+
+  /* ── Ramme ───────────────────────────────────────────────────────────────── */
+
+  --frame-mobile:  36px;    /* sm  < 600px  */
+  --frame-desktop: 100px;   /* md ≥ 1050px  */
+
+}
