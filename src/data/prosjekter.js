@@ -19,7 +19,7 @@ const prosjekter = [
     id: 2,
     tittel: "Colorbook",
     beskrivelse:
-      "Interaktiv fargeleggingsapp for barn.\n Designet i Figma, bygget med React.",
+      "Fargeleggingsapp bygget med React, med håndtegnet illustrasjon og fargepalett inspirert av klassisk animasjonsfilm.",
     bilde: imgColorbook,
     demo: "https://aashildf.github.io/Fargevelger/",
     repo: "https://github.com/aashildf/Fargevelger",
@@ -29,7 +29,7 @@ const prosjekter = [
     id: 3,
     tittel: "Gutendex",
     beskrivelse:
-      "Utforske og les klassisk litteratur. Velg blant tusenvis av bøker via Gutendex API.",
+      "Webapplikasjon for å utforske, søke og lagre klassisk litteratur fra Project Gutenberg. Dynamisk bibliotek som henter tusenvis av bøker i sanntid via Gutendex API.",
     bilde: imgGutendex,
     demo: "https://aashildf.github.io/Gutenberg_booksearch",
     repo: "https://github.com/aashildf/Gutenberg_booksearch",
@@ -39,7 +39,7 @@ const prosjekter = [
     id: 4,
     tittel: "Playloop",
     beskrivelse:
-      "En retro spillportal  bygget med React, Tailwind og Framer Motion.",
+      "En interaktiv spillportal inspirert av retro spillestetikk og arkadekultur. Bygget med React, Tailwind og Framer Motion.",
     bilde: imgPlayloop,
     demo: "https://aashildf.github.io/PlayLoop/",
     repo: "https://github.com/aashildf/PlayLoop",
@@ -49,7 +49,7 @@ const prosjekter = [
     id: 6,
     tittel: "Bergen Værapp",
     beskrivelse:
-      "Værapp for Bergen, med daglig prognose og illustrasjoner. MET Norway Weather API",
+      "Lokal værapp med dynamiske illustrasjoner og 7-dagers prognose. Bygget med React og OpenWeatherMap API.",
     bilde: imgVærapp,
     demo: "https://aashildf.github.io/Weather-app/",
     repo: "https://github.com/aashildf/Weather-app",

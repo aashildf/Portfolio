@@ -7,6 +7,7 @@ import {
 } from '../constants'
 import IntroAnimasjon from './IntroAnimasjon'
 import { BASE } from '../utils/assetUrl'
+import hjemIkon from '../../assets/bilder/prosjektbilder/bergenshus_hjemikon.png'
 
 
 export default function Layout() {
@@ -105,7 +106,7 @@ export default function Layout() {
   const fontSize   = isMobile ? 15 : FONT_SIZE
   const cornerLead = isMobile ? 14 : CORNER_LEAD
 
-  const HOUSE_W   = isMobile ? 56 : isTablet ? 56 : 65  // bredde på bergenshus-ikon
+  const HOUSE_W   = isMobile ? 66 : isTablet ? 96 : 108  // bredde på bergenshus-ikon
   const SEPT_LINE = 26   // bredde til strek + margins i seksjonnavn-overlayeren
   const nameW    = tw ? tw.name       : 105
   const kontaktW = tw ? tw.kontakt    :  62
@@ -241,7 +242,7 @@ export default function Layout() {
           style={{ pointerEvents: "auto", cursor: "pointer", opacity: hoveredNav === "hjem" || active === "hjem" ? 1 : 0.72 }}
         >
           <image
-            href={`${BASE}brghus.png`}
+            href={hjemIkon}
             x={hjemX - 1}
             y={fi - HOUSE_W / 2}
             width={HOUSE_W}

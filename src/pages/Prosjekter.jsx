@@ -157,6 +157,45 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
           onClick={() => toggleFlip(i)}
           whileHover={prosjSpredt && !flipped[i] ? kortHover : undefined}
         >
+          {/* Snu-indikator */}
+          {prosjSpredt && !flipped[i] && (
+            <div style={{
+              position: 'absolute',
+              bottom: 8,
+              right: 10,
+              zIndex: 10,
+              pointerEvents: 'none',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}>
+              <span style={{
+                fontFamily: "'Caveat', cursive",
+                fontSize: 13,
+                color: '#274B66',
+                letterSpacing: '0.08em',
+                lineHeight: 1,
+              }}>snu</span>
+              <motion.svg
+                viewBox="0 0 20 16"
+                width={14}
+                height={11}
+                fill="none"
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <path
+                  d="M2 8 L14 8 M10 3 L15 8 L10 13"
+                  stroke="#274B66"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </motion.svg>
+            </div>
+          )}
+
           {/* Flip-container */}
           <div style={{
             position: 'relative',
@@ -222,9 +261,6 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
                   lineHeight: 1.5,
                   flex: 1,
                   overflow: 'hidden',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 4,
-                  WebkitBoxOrient: 'vertical',
                   fontStyle: 'italic',
                   whiteSpace: 'pre-line',
                 }}>

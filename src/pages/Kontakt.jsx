@@ -19,6 +19,7 @@ import { useState, useRef, useEffect } from 'react'
 import { BASE } from '../utils/assetUrl'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import coffeeImg from '../../assets/bilder/om_meg_bilder/kaffe.png'
 
 
 
@@ -195,6 +196,68 @@ function MailIcon({ size = 18, color = "var(--color-navy)" })     { return <svg 
 function PhoneIcon({ size = 18, color = "var(--color-navy)" })    { return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth="1.5" style={{ flexShrink:0, pointerEvents:"none" }}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg> }
 function GithubIcon({ size = 18, color = "var(--color-navy)" })   { return <svg viewBox="0 0 24 24" width={size} height={size} fill={color} style={{ flexShrink:0, pointerEvents:"none" }}><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.749 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg> }
 function LinkedInIcon({ size = 18, color = "var(--color-navy)" }) { return <svg viewBox="0 0 24 24" width={size} height={size} fill={color} style={{ flexShrink:0, pointerEvents:"none" }}><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> }
+
+// ------------------------------------
+// VARM DAMP — over kaffekopp-bildet
+// ------------------------------------
+
+function WarmSteam({ style }) {
+  return (
+    <div style={{ pointerEvents: "none", ...style }}>
+      <svg
+        viewBox="0 0 44 56"
+        width="44"
+        height="56"
+        style={{ display: "block", overflow: "visible" }}
+      >
+        <style>{`
+          @keyframes ws1 {
+            0%   { transform: translate(0,0) scaleX(1); opacity: 0; }
+            12%  { opacity: 0.85; }
+            55%  { transform: translate(-2px,-20px) scaleX(1.15); }
+            100% { transform: translate(3px,-48px) scaleX(1.35); opacity: 0; }
+          }
+          @keyframes ws2 {
+            0%   { transform: translate(0,0) scaleX(1); opacity: 0; }
+            12%  { opacity: 0.85; }
+            55%  { transform: translate(3px,-22px) scaleX(0.88); }
+            100% { transform: translate(-2px,-46px) scaleX(1.2); opacity: 0; }
+          }
+          @keyframes ws3 {
+            0%   { transform: translate(0,0) scaleX(1); opacity: 0; }
+            12%  { opacity: 0.75; }
+            55%  { transform: translate(-2px,-20px) scaleX(1.1); }
+            100% { transform: translate(2px,-44px) scaleX(1.28); opacity: 0; }
+          }
+          .ws1 { animation: ws1 3.2s ease-in-out infinite;       transform-origin: center bottom; }
+          .ws2 { animation: ws2 2.8s ease-in-out infinite 0.7s;  transform-origin: center bottom; }
+          .ws3 { animation: ws3 3.6s ease-in-out infinite 1.4s;  transform-origin: center bottom; }
+        `}</style>
+
+        <g className="ws1">
+          <path d="M 10,54 C 8,47 13,43 11,35 C 9,27 5,25 7,17"
+            fill="none" stroke="rgba(60,30,10,0.18)" strokeWidth="0.8" strokeLinecap="round" />
+          <path d="M 10,54 C 8,47 13,43 11,35 C 9,27 5,25 7,17"
+            fill="none" stroke="rgba(255,210,140,0.55)" strokeWidth="2" strokeLinecap="round" />
+        </g>
+
+        <g className="ws2">
+          <path d="M 22,54 C 25,47 18,42 20,34 C 22,26 28,23 25,15"
+            fill="none" stroke="rgba(60,30,10,0.15)" strokeWidth="0.8" strokeLinecap="round" />
+          <path d="M 22,54 C 25,47 18,42 20,34 C 22,26 28,23 25,15"
+            fill="none" stroke="rgba(255,200,120,0.50)" strokeWidth="2" strokeLinecap="round" />
+        </g>
+
+        <g className="ws3">
+          <path d="M 34,54 C 32,47 37,43 35,35 C 33,27 29,25 31,17"
+            fill="none" stroke="rgba(60,30,10,0.15)" strokeWidth="0.8" strokeLinecap="round" />
+          <path d="M 34,54 C 32,47 37,43 35,35 C 33,27 29,25 31,17"
+            fill="none" stroke="rgba(255,215,150,0.50)" strokeWidth="2" strokeLinecap="round" />
+        </g>
+      </svg>
+    </div>
+  )
+}
 
 // ------------------------------------
 // REGN — hover-animasjon på kontaktkortet
@@ -604,7 +667,6 @@ const MONO      = "'Courier Prime', 'Courier New', monospace"
 // 1.kontaktinfo
 export function KontaktInnhold({ isMobile }) {
   const [showVisittkort, setShowVisittkort] = useState(false)
-  const [raining, setRaining] = useState(isMobile)
 
   //  høyre-offset for kopp-kort, slik at det ikke går utenfor rammen
 
@@ -618,16 +680,31 @@ export function KontaktInnhold({ isMobile }) {
         <div className="pcrd pcrd-instax native-cursor"
           style={{ ...kortBase, padding: "20px 20px 46px", width: MOB_W }}
         >
-          <div style={{ position: "relative", aspectRatio: "5/4" }}>
-            <RainOverlay active={true} />
-            <img src={`${BASE}kontakt_bg.png`} alt=""
+          <div style={{ position: "relative", aspectRatio: "5/4", overflow: "hidden", background: "#f7f4ef" }}>
+            <img
+              src={coffeeImg}
+              alt=""
               style={{
                 position: "absolute",
-                top: "-38px", left: "-38px", right: "-38px", bottom: "-28px",
-                width: "calc(100% + 76px)", height: "calc(100% + 66px)",
-                objectFit: "contain", display: "block",
-                transform: "translateY(20px)",
-              }} />
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+            <WarmSteam style={{
+              position: "absolute",
+              left: "50%",
+              bottom: "28%",
+              transform: "translateX(-50%)",
+              zIndex: 2,
+            }} />
+            <div style={{
+              position: "absolute",
+              inset: 0,
+              boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.10), inset 0 0 18px rgba(0,0,0,0.13)",
+              pointerEvents: "none",
+            }} />
             <div style={{ position: "absolute", inset: 0, zIndex: 1, display: "flex", flexDirection: "column",
               justifyContent: "flex-start", padding: "16px 18px", gap: 6 }}>
               {KONTAKT_INFO.map(({ label, href, Icon }) => {
@@ -715,27 +792,33 @@ export function KontaktInnhold({ isMobile }) {
           width: CARD_W,
           flexShrink: 0,
         }}
-        onMouseEnter={() => setRaining(true)}
-        onMouseLeave={() => setRaining(false)}
       >
-        {/* Fotoflate — bildet blør ut over den indre rammen på alle kanter */}
-        <div style={{ position: "relative", aspectRatio: "5 / 4" }}>
-          <RainOverlay active={raining} />
+        {/* Fotoflate */}
+        <div style={{ position: "relative", aspectRatio: "5 / 4", overflow: "hidden", background: "#f7f4ef" }}>
           <img
-            src={`${BASE}kontakt_bg.png`}
+            src={coffeeImg}
             alt=""
             style={{
               position: "absolute",
-              top: "clamp(-48px, -3vw, -40px)",
-              left: "clamp(-48px, -3vw, -40px)",
-              right: "clamp(-48px, -3vw, -40px)",
-              bottom: "clamp(-36px, -2.25vw, -30px)",
-              width: "calc(100% + clamp(80px, 6vw, 96px))",
-              height: "calc(100% + clamp(70px, 5.25vw, 84px))",
-              objectFit: "contain",
-              transform: "translateY(15px)",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
             }}
           />
+          <WarmSteam style={{
+            position: "absolute",
+            left: "72%",
+            bottom: "32%",
+            transform: "translateX(-50%)",
+            zIndex: 2,
+          }} />
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.10), inset 0 0 18px rgba(0,0,0,0.13)",
+            pointerEvents: "none",
+          }} />
 
           {/* Kontaktinfo som svart penn */}
           <div style={{
@@ -744,7 +827,7 @@ export function KontaktInnhold({ isMobile }) {
             flexDirection: "column",
             justifyContent: "flex-start",
             padding: "clamp(14px, 2vw, 26px)",
-            paddingTop: "clamp(10px, 4vw, 2px)",
+            paddingTop: "clamp(28px, 4vw, 48px)",
             gap: "clamp(5px, 0.65vw, 10px)",
           }}>
             {KONTAKT_INFO.map(({ label, href, Icon }) => {
