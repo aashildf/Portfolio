@@ -11,7 +11,8 @@ const prosjekter = [
     beskrivelse:
       "Oversikt over alle norske offentlige API-er med søk og kategorier, bygget med React.",
     bilde: imgApi,
-    github: "https://aashildf.github.io/my-portfolio-api-site",
+    demo: "https://aashildf.github.io/my-portfolio-api-site",
+    repo: "https://github.com/aashildf/my-portfolio-api-site",
     sirkel: "#8FA09F",
   },
   {
@@ -20,7 +21,8 @@ const prosjekter = [
     beskrivelse:
       "Interaktiv fargeleggingsapp for barn.\n Designet i Figma, bygget med React.",
     bilde: imgColorbook,
-    github: "https://aashildf.github.io/Fargevelger/",
+    demo: "https://aashildf.github.io/Fargevelger/",
+    repo: "https://github.com/aashildf/Fargevelger",
     sirkel: "#AFD0B8",
   },
   {
@@ -29,7 +31,8 @@ const prosjekter = [
     beskrivelse:
       "Utforske og les klassisk litteratur. Velg blant tusenvis av bøker via Gutendex API.",
     bilde: imgGutendex,
-    github: "https://aashildf.github.io/Gutenberg_booksearch",
+    demo: "https://aashildf.github.io/Gutenberg_booksearch",
+    repo: "https://github.com/aashildf/Gutenberg_booksearch",
     sirkel: "#453925",
   },
   {
@@ -38,7 +41,8 @@ const prosjekter = [
     beskrivelse:
       "En retro spillportal  bygget med React, Tailwind og Framer Motion.",
     bilde: imgPlayloop,
-    github: "https://aashildf.github.io/PlayLoop/",
+    demo: "https://aashildf.github.io/PlayLoop/",
+    repo: "https://github.com/aashildf/PlayLoop",
     sirkel: "#683E99",
   },
   {
@@ -47,7 +51,8 @@ const prosjekter = [
     beskrivelse:
       "Værapp for Bergen, med daglig prognose og illustrasjoner. MET Norway Weather API",
     bilde: imgVærapp,
-    github: "https://aashildf.github.io/Weather-app/",
+    demo: "https://aashildf.github.io/Weather-app/",
+    repo: "https://github.com/aashildf/Weather-app",
     sirkel: "#8B9FA8",
   },
 ];
