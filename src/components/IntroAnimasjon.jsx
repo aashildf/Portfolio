@@ -26,17 +26,62 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
     const vh = window.innerHeight
     const points = [0, 1.00 * vh, 2.58 * vh, 3.35 * vh, 4.85 * vh]
     let lastY = window.scrollY
-    let timer = null
-    let isSnapping = false
+    let debounceTimer = null
+    let rafId = null
+    let animating = false
+
+    const easeInOutCubic = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
+    const cancelAnim = () => {
+      if (rafId !== null) cancelAnimationFrame(rafId)
+      rafId = null
+      animating = false
+    }
+
+    // Egen rAF-drevet scroll: vi styrer varighet og easing selv, så vi
+    // vet nøyaktig når overgangen er ferdig — i stedet for å gjette et
+    // fast antall ms på nettleserens innebygde "smooth" scroll (som varierer
+    // med avstand/nettleser og kan avbrytes for tidlig).
+    const animateTo = (target) => {
+      cancelAnim()
+      const start = window.scrollY
+      const distance = target - start
+      if (Math.abs(distance) < 1) return
+      animating = true
+      const duration = Math.min(900, Math.max(350, Math.abs(distance) * 0.45))
+      const startTime = performance.now()
+
+      const step = (now) => {
+        const t = Math.min(1, (now - startTime) / duration)
+        window.scrollTo({ top: start + distance * easeInOutCubic(t), behavior: 'auto' })
+        if (t < 1) {
+          rafId = requestAnimationFrame(step)
+        } else {
+          animating = false
+          rafId = null
+          lastY = window.scrollY
+        }
+      }
+      rafId = requestAnimationFrame(step)
+    }
+
+    // Ekte brukerinput midt i en snap-animasjon skal avbryte den, ikke
+    // kjempe mot den — ellers "hopper" siden når brukeren fortsetter å scrolle.
+    const onUserInput = () => {
+      if (animating) {
+        cancelAnim()
+        lastY = window.scrollY
+      }
+    }
 
     const onScroll = () => {
-      if (isSnapping) return
+      if (animating) return // ignorer scroll-events generert av vår egen animasjon
       const currentY = window.scrollY
       const direction = currentY > lastY ? 1 : -1
       lastY = currentY
 
-      clearTimeout(timer)
-      timer = setTimeout(() => {
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
         const y = window.scrollY
         // Finn segmentet [before, after] brukeren befinner seg i
         const before   = [...points].reverse().find(p => p <= y) ?? points[0]
@@ -49,15 +94,23 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
           : (progress < 0.75 ? before : after)
 
         if (Math.abs(target - y) > 5) {
-          isSnapping = true
-          window.scrollTo({ top: target, behavior: 'smooth' })
-          setTimeout(() => { isSnapping = false }, 800)
+          animateTo(target)
         }
       }, 100)
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => { window.removeEventListener('scroll', onScroll); clearTimeout(timer) }
+    window.addEventListener('wheel', onUserInput, { passive: true })
+    window.addEventListener('touchstart', onUserInput, { passive: true })
+    window.addEventListener('keydown', onUserInput)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('wheel', onUserInput)
+      window.removeEventListener('touchstart', onUserInput)
+      window.removeEventListener('keydown', onUserInput)
+      clearTimeout(debounceTimer)
+      cancelAnim()
+    }
   }, [])
   const vw = win.w
   const vh = win.h

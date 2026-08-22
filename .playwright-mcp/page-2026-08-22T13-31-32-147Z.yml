@@ -1,0 +1,217 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img "Portfolio – velg prosjekt" [ref=e7]:
+        - link "Prosjekt 1" [ref=e9]:
+          - /url: /prosjekt1
+        - link "Prosjekt 2" [ref=e12]:
+          - /url: /prosjekt2
+        - link "Prosjekt 3" [ref=e15]:
+          - /url: /prosjekt3
+      - generic:
+        - generic:
+          - generic:
+            - img "Åshild Færøy"
+          - generic:
+            - heading "Åshild Færøy" [level=2]
+            - paragraph: Jeg er en frontend-student fra Bergen med flere idéer enn timer i døgnet. Det beste jeg vet er når en løs tanke endelig våkner til liv og begynner å leve på skjermen.
+            - paragraph: Jeg elsker å skape ting som ikke bare fungerer, men som også gir deg en liten opplevelse, noe du kan smile av eller bare nyte.
+            - paragraph: "Jeg jakter på den følelsen der alt bare 'klikker' på plass:"
+            - generic:
+              - paragraph: "\"Det øyeblikket der noe er så rett og så smooth at det gir deg et lite grøss.\""
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading "Frontend" [level=3]
+                    - paragraph: React · JavaScript · CSS · Tailwind
+                  - paragraph: Fokus på løsninger som fungerer godt og ser bra ut.
+                - generic:
+                  - generic: les mer
+                  - generic: →
+          - generic:
+            - generic:
+              - heading "Frontend-utvikling" [level=3]
+              - paragraph: Denne porteføljen ble til gjennom prøving, feiling, og en klar visjon om hva du skal få se. Med et over gjennomsnittet stort fokus på, (og kjærlighet til) detaljer og flyt kan jeg vel neppe si meg helt ferdig enda...
+              - generic:
+                - generic: ←
+                - generic: tilbake
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading "API & data" [level=3]
+                    - paragraph: Fetch API · JSON · Async/Await
+                  - paragraph: Henter og visualiserer data på en tydelig måte.
+                - generic:
+                  - generic: les mer
+                  - generic: →
+          - generic:
+            - generic:
+              - heading "API & Dataflyt" [level=3]
+              - paragraph: Enten jeg henter live værdata eller kartlegger API-økosystemet, er målet mitt å gjøre informasjonen enkel og tilgjengelig. Jeg kombinerer teknisk datahåndtering med visuell formidling for å skape grensesnitt som er både intuitive og estetiske.
+              - generic:
+                - generic: ←
+                - generic: tilbake
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading "Design" [level=3]
+                    - paragraph: Figma · Visuell utforming · Estetikk
+                  - paragraph: Jeg utforsker design og former idéer visuelt før de blir til kode.
+                - generic:
+                  - generic: les mer
+                  - generic: →
+          - generic:
+            - generic:
+              - heading "Design" [level=3]
+              - paragraph: Jeg brenner for design og hvordan visuelle valg påvirker uttrykk og brukeropplevelse. Jeg er opptatt av typografi, farger og struktur, og hvordan dette sammen skaper tydelige og helhetlige digitale opplevelser.
+              - generic:
+                - generic: ←
+                - generic: tilbake
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading "Interaktivitet" [level=3]
+                    - paragraph: Event handling · Spill-logikk · Mikrointeraksjoner
+                  - paragraph: Liker å skape små ting som får siden til å leve.
+                - generic:
+                  - generic: les mer
+                  - generic: →
+          - generic:
+            - generic:
+              - heading "Interaktivitet" [level=3]
+              - paragraph: Jeg elsker små detaljer som gir liv til digitale flater. Fra den interaktive arcadefølelsen i PlayLoop, til skjulte 'easter eggs' du finner. Jeg vil skape brukeropplevelser som overrasker og engasjerer.
+              - generic:
+                - generic: ←
+                - generic: tilbake
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - img "Portfolio"
+            - generic: Portfolio 2026
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img "API-Studio"
+                - generic: API-Studio
+              - generic:
+                - generic:
+                  - heading "API-Studio" [level=3]
+                  - paragraph: Oversikt over alle norske offentlige API-er med søk og kategorier, bygget med React.
+                  - generic:
+                    - link "↗ Live demo":
+                      - /url: https://aashildf.github.io/my-portfolio-api-site
+                    - link "</> Kode":
+                      - /url: https://github.com/aashildf/my-portfolio-api-site
+                  - generic:
+                    - generic: ←
+                    - generic: tilbake
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img "Colorbook"
+                - generic: Colorbook
+              - generic:
+                - generic:
+                  - heading "Colorbook" [level=3]
+                  - paragraph: Fargeleggingsapp bygget med React, med håndtegnet illustrasjon og fargepalett inspirert av klassisk animasjonsfilm.
+                  - generic:
+                    - link "↗ Live demo":
+                      - /url: https://aashildf.github.io/Fargevelger/
+                    - link "</> Kode":
+                      - /url: https://github.com/aashildf/Fargevelger
+                  - generic:
+                    - generic: ←
+                    - generic: tilbake
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img "Gutendex"
+                - generic: Gutendex
+              - generic:
+                - generic:
+                  - heading "Gutendex" [level=3]
+                  - paragraph: Webapplikasjon for å utforske, søke og lagre klassisk litteratur fra Project Gutenberg. Dynamisk bibliotek som henter tusenvis av bøker i sanntid via Gutendex API.
+                  - generic:
+                    - link "↗ Live demo":
+                      - /url: https://aashildf.github.io/Gutenberg_booksearch
+                    - link "</> Kode":
+                      - /url: https://github.com/aashildf/Gutenberg_booksearch
+                  - generic:
+                    - generic: ←
+                    - generic: tilbake
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img "Playloop"
+                - generic: Playloop
+              - generic:
+                - generic:
+                  - heading "Playloop" [level=3]
+                  - paragraph: En interaktiv spillportal inspirert av retro spillestetikk og arkadekultur. Bygget med React, Tailwind og Framer Motion.
+                  - generic:
+                    - link "↗ Live demo":
+                      - /url: https://aashildf.github.io/PlayLoop/
+                    - link "</> Kode":
+                      - /url: https://github.com/aashildf/PlayLoop
+                  - generic:
+                    - generic: ←
+                    - generic: tilbake
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img "Bergen Værapp"
+                - generic: Bergen Værapp
+              - generic:
+                - generic:
+                  - heading "Bergen Værapp" [level=3]
+                  - paragraph: Lokal værapp med dynamiske illustrasjoner og 7-dagers prognose. Bygget med React og OpenWeatherMap API.
+                  - generic:
+                    - link "↗ Live demo":
+                      - /url: https://aashildf.github.io/Weather-app/
+                    - link "</> Kode":
+                      - /url: https://github.com/aashildf/Weather-app
+                  - generic:
+                    - generic: ←
+                    - generic: tilbake
+      - generic: skroll
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - link "faaas0825@gmail.com":
+                - /url: mailto:faaas0825@gmail.com
+              - generic: 41 52 49 84
+              - link "github.com/aashildf":
+                - /url: https://github.com/aashildf
+              - link "LinkedIn":
+                - /url: https://www.linkedin.com/in/%C3%A5shild-f%C3%A6r%C3%B8y-855595108/
+          - button "Save it for a rainy day"
+        - generic: Åshild Færøy
+  - img:
+    - generic: Åshild Færøy
+    - generic: Ferdigheter
+    - generic: Prosjekter
+    - generic: Kontakt
