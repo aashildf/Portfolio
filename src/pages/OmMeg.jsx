@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { BASE } from '../utils/assetUrl'
 import { motion, useMotionValueEvent } from 'framer-motion'
 import drawingBlue from '../../assets/bilder/om_meg_bilder/blue_me_cutout.jpg'
+import ashildCutout from '../../assets/bilder/om_meg_bilder/ashild_cutout.png'
+import ScratchReveal from '../components/ScratchReveal'
 
 export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, cardRef }) {
   const [drawn, setDrawn] = useState(false)
@@ -33,7 +35,10 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
           display: "flex",
           flexDirection: isMobile ? "column" : "row",
           position: "relative",
-          maxWidth: "clamp(500px, 72vw, 860px)",
+          // Mobil: kortet stables i én kolonne, så bildet får HELE denne
+          // bredden (ikke halvparten som på desktop) — en 500px-bunngrense
+          // gir et altfor høyt bilde som flyter utenfor rammen/skjermen.
+          width: isMobile ? "min(85vw, 380px)" : "clamp(500px, 72vw, 860px)",
           borderRadius: 0,
           overflow: "hidden",
           boxShadow: "var(--shadow-card)",
@@ -41,16 +46,13 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
           marginRight: isMobile ? 16 : isTablet ? 24 : 0,
         }}
       >
-        {/* Bilde-halvdel */}
-        <div style={{ flex: "0 0 50%" }}>
-          <img
-            src={drawingBlue}
+        {/* Bilde-halvdel — skrapelodd-effekt avslører ashild_cutout.png under */}
+        <div style={{ flex: "0 0 50%", pointerEvents: "auto" }}>
+          <ScratchReveal
+            topSrc={drawingBlue}
+            bottomSrc={ashildCutout}
             alt="Åshild Færøy"
-            style={{
-              width: "100%",
-              height: "auto",
-              display: "block",
-            }}
+            active={drawn}
           />
         </div>
 

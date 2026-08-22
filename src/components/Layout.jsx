@@ -47,6 +47,7 @@ export default function Layout() {
   const ferdigSec  = useRef(null)
   const prosjSec   = useRef(null)
   const kontaktSec = useRef(null)
+  const jumpHomeRef = useRef(null)
 
   const { scrollY } = useScroll()
 
@@ -89,7 +90,10 @@ export default function Layout() {
     else                    setActive('hjem')
   })
 
-  const scrollToRef = ref => ref.current?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToRef = ref => {
+    ref.current?.scrollIntoView({ behavior: 'instant' })
+    jumpHomeRef.current?.()
+  }
 
   const svgW    = Math.min(vp.h * W / H, vp.w)
   const svgLeft = (vp.w - svgW) / 2
@@ -176,6 +180,7 @@ export default function Layout() {
         ferdigRef={ferdigSec}
         prosjRef={prosjSec}
         kontaktRef={kontaktSec}
+        jumpHomeRef={jumpHomeRef}
       />
 
       {/* Seksjonnavn på linjen — mobil/nettbrett, i linje med rammen (skjult på hjem) */}
@@ -237,7 +242,7 @@ export default function Layout() {
 
         {/* Hjem-ikon */}
         <g
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); jumpHomeRef.current?.() }}
           {...navHover("hjem")}
           style={{ pointerEvents: "auto", cursor: "pointer", opacity: hoveredNav === "hjem" || active === "hjem" ? 1 : 0.72 }}
         >
@@ -386,7 +391,7 @@ export default function Layout() {
                 key={label}
                 className={`menu-item${active === id ? " menu-item--active" : ""}`}
                 onClick={() => {
-                  if (id === "hjem") window.scrollTo({ top: 0, behavior: "smooth" })
+                  if (id === "hjem") { window.scrollTo({ top: 0, behavior: "instant" }); jumpHomeRef.current?.() }
                   else scrollToRef(ref)
                   closeClick()
                 }}

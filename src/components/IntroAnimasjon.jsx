@@ -12,7 +12,7 @@ import umbrellaImg  from '../../assets/svg/blue_umbrella.svg'
 import { RainBackdrop, RimDrips } from './Regn'
 import drawingBlue  from '../../assets/bilder/om_meg_bilder/blue_me_cutout.jpg'
 
-export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjRef, kontaktRef }) {
+export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjRef, kontaktRef, jumpHomeRef }) {
   const { scrollY } = useScroll()
   const [win, setWin] = useState({ w: window.innerWidth, h: window.innerHeight })
   useEffect(() => {
@@ -21,11 +21,30 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // JS scroll snap: snapper til nærmeste seksjon i scroll-retningen
+  // JS scroll snap: én tydelig scroll-bevegelse = ett steg til neste/forrige
+  // seksjon (samme "decisive" oppførsel som å klikke i navigasjonen) —
+  // ikke avhengig av hvor langt inn i segmentet man har scrollet.
   useEffect(() => {
-    const vh = window.innerHeight
-    const points = [0, 1.00 * vh, 2.58 * vh, 3.35 * vh, 4.85 * vh]
-    let lastY = window.scrollY
+    // Regnes ut på nytt hver gang (ikke bufret), slik at snap-punktene alltid
+    // matcher GJELDENDE vindushøyde — ellers blir de stående feil etter en
+    // vindus-/DevTools-endring av størrelse (siden dette kun kjørte én gang
+    // ved mount), og scroll-snap treffer feil sted.
+    const getPoints = () => {
+      const vh = window.innerHeight
+      return [0, 1.00 * vh, 2.58 * vh, 3.35 * vh, 4.85 * vh]
+    }
+    const nearestIndex = (y, points) => {
+      let best = 0
+      for (let i = 1; i < points.length; i++) {
+        if (Math.abs(points[i] - y) < Math.abs(points[best] - y)) best = i
+      }
+      return best
+    }
+
+    // restY: posisjonen vi sist var i ro på — grunnlinjen den neste
+    // scroll-bevegelsen måles fra. Fanges friskt fra faktisk DOM-tilstand,
+    // så den også synkroniseres riktig etter eksterne hopp (f.eks. nav-klikk).
+    let restY = window.scrollY
     let debounceTimer = null
     let rafId = null
     let animating = false
@@ -46,9 +65,9 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       cancelAnim()
       const start = window.scrollY
       const distance = target - start
-      if (Math.abs(distance) < 1) return
+      if (Math.abs(distance) < 1) { restY = target; return }
       animating = true
-      const duration = Math.min(900, Math.max(350, Math.abs(distance) * 0.45))
+      const duration = Math.min(700, Math.max(300, Math.abs(distance) * 0.4))
       const startTime = performance.now()
 
       const step = (now) => {
@@ -59,44 +78,68 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
         } else {
           animating = false
           rafId = null
-          lastY = window.scrollY
+          restY = target
         }
       }
       rafId = requestAnimationFrame(step)
     }
 
-    // Ekte brukerinput midt i en snap-animasjon skal avbryte den, ikke
-    // kjempe mot den — ellers "hopper" siden når brukeren fortsetter å scrolle.
+    // Skiller ekte musehjul/touch/tastatur-scrolling (skal være "decisive":
+    // ett steg per bevegelse) fra programmatiske hopp som nav-klikk sin
+    // scrollIntoView (skal få lov å lande akkurat der de sikter, selv om
+    // det er flere seksjoner unna — ellers "korrigerer" vi et Hjem→Kontakt-
+    // klikk tilbake til bare ett steg).
+    let userScrolling = false
+
     const onUserInput = () => {
-      if (animating) {
-        cancelAnim()
-        lastY = window.scrollY
-      }
+      userScrolling = true
+      // Avbryter en pågående overgang UTEN å røre restY. restY skal bare
+      // oppdateres når en bevegelse faktisk fullføres (se animateTo/step) —
+      // holdes den urørt her, måles hele den (kanskje humpete, flerdelte)
+      // fysiske bevegelsen alltid fra samme, opprinnelige utgangspunkt når
+      // den til slutt roer seg, så den alltid lander nøyaktig ett steg unna.
+      // (Å sette restY til enten det avbrutte stedet ELLER målet var begge
+      // feil: det avbrutte stedet kan ligge nærmere neste seksjon enn start,
+      // og målet kan ligge FORAN der brukeren faktisk har rukket å scrolle,
+      // som begge ga en falsk retning/dobbel-steg ved gjenopptatt scrolling.)
+      if (animating) cancelAnim()
     }
+
+    const MIN_INTENT = 6 // px — filtrerer bort støy, men fanger selv små bevisste scroll
 
     const onScroll = () => {
       if (animating) return // ignorer scroll-events generert av vår egen animasjon
-      const currentY = window.scrollY
-      const direction = currentY > lastY ? 1 : -1
-      lastY = currentY
 
       clearTimeout(debounceTimer)
+      // Ekte scroll skal reagere raskt (60ms). Programmatiske hopp (nav-klikk)
+      // bruker en lengre, mer tålmodig ventetid — en lang scrollIntoView-
+      // animasjon kan ha ujevne frame-mellomrom, og en kort debounce kan da
+      // feilaktig tolke et hakk midtveis som "ferdig scrollet" og kapre
+      // animasjonen til et helt annet (nærmeste-der-og-da) punkt.
+      const delay = userScrolling ? 60 : 220
       debounceTimer = setTimeout(() => {
         const y = window.scrollY
-        // Finn segmentet [before, after] brukeren befinner seg i
-        const before   = [...points].reverse().find(p => p <= y) ?? points[0]
-        const after    = points.find(p => p > y) ?? points[points.length - 1]
-        const gap      = after - before
-        const progress = gap > 0 ? (y - before) / gap : 0
-        // Snap fremover hvis > 25 % inn i segmentet, bakover hvis < 25 %
-        const target = direction > 0
-          ? (progress > 0.25 ? after  : before)
-          : (progress < 0.75 ? before : after)
+        const points = getPoints()
 
-        if (Math.abs(target - y) > 5) {
-          animateTo(target)
+        if (userScrolling) {
+          // Ekte scroll-input: flytt nøyaktig ett steg i scroll-retningen
+          userScrolling = false
+          const delta = y - restY
+          const baseIdx = nearestIndex(restY, points)
+          let targetIdx = baseIdx
+          if      (delta >  MIN_INTENT) targetIdx = Math.min(points.length - 1, baseIdx + 1)
+          else if (delta < -MIN_INTENT) targetIdx = Math.max(0, baseIdx - 1)
+          const target = points[targetIdx]
+          if (Math.abs(target - y) > 2) animateTo(target)
+          else restY = target
+        } else {
+          // Programmatisk hopp (nav-klikk, Hjem-ikon): stol på posisjonen,
+          // bare synk til nærmeste gyldige punkt uten ett-steg-begrensningen
+          const target = points[nearestIndex(y, points)]
+          if (Math.abs(target - y) > 2) animateTo(target)
+          else restY = target
         }
-      }, 100)
+      }, delay)
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -128,6 +171,13 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
   const pScale      = useTransform(scrollY, [0, 0.30 * vh], [1, scaleToFill])
   const pOpacityRaw = useTransform(scrollY, [0.12 * vh, 0.38 * vh], [1, 0])
   const pOpacity    = useSpring(pOpacityRaw, { stiffness: 55, damping: 18 })
+  // Ved instant nav-hopp (klikk i menyen) rekker ikke fjæra å tone P-en ut/inn
+  // i tide, så den blir liggende og "spøke" synlig et halvt sekund etterpå.
+  // Layout kaller denne rett etter et instant scroll-hopp for å hoppe rett
+  // til riktig opacity uten fjær-animasjon.
+  useEffect(() => {
+    if (jumpHomeRef) jumpHomeRef.current = () => pOpacity.jump(window.scrollY < 0.5 * vh ? 1 : 0)
+  })
   // bergen.jpg: litt lysnet — fader inn med P-en, forsvinner ved slutten
   const bergenOp = useTransform(scrollY,
     [0.12*vh, 0.35*vh, 5.60*vh, 5.85*vh],
@@ -179,7 +229,13 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
   // Mobile: 1-kolonne, samme bredde og sidemarger som prosjekter-kortene
   const prosjContW_mobile = Math.min(vw - 2 * (frameInset + 1) - prosjGap * 2, 2 * 220 + prosjGap)
   const mobileCardW = isMobile ? prosjContW_mobile : cardW
-  const mobileCardH = isMobile ? Math.round((prosjContW_mobile - prosjGap) / 2 * 4 / 5) : cardH
+  // Korthøyden ble kun regnet ut fra BREDDEN, uavhengig av skjermhøyden —
+  // på korte mobilskjermer (f.eks. iPhone SE) ble 4 stablede kort da høyere
+  // enn tilgjengelig plass og fløt utenfor rammen. Begrens høyden slik at
+  // stabelen alltid får plass innenfor rammen.
+  const widthDerivedFerdigH = Math.round((prosjContW_mobile - prosjGap) / 2 * 4 / 5)
+  const maxFerdigHByHeight  = Math.floor((vh - 2 * (frameInset + 1) - 3 * CARD_GAP) / 4)
+  const mobileCardH = isMobile ? Math.max(50, Math.min(widthDerivedFerdigH, maxFerdigHByHeight)) : cardH
   const mobileGridH = isMobile ? 4 * mobileCardH + 3 * CARD_GAP : gridH
   const mobileGridL = isMobile ? frameInset + 1 + prosjGap : gridLeft
   const mobileGridT = isMobile ? Math.round(frameInset + 1 + (vh - 2 * (frameInset + 1) - mobileGridH) / 2) : gridTop
@@ -208,8 +264,13 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
     }
   })
 
-  // Prosjekter: fade inn, hold, fade ut bak regnet (INGEN push-up)
-  const prosjOp    = useTransform(scrollY, [3.05*vh, 3.28*vh], [0, 1])
+  // Prosjekter: fade inn, hold, fade ut bak regnet (INGEN push-up).
+  // Regn-skjulingen (prosjMask) følger paraplyens fjær-posisjon, som bruker
+  // reell tid (~1,5-2s) på å rekke opp — ved et raskt/instant hopp til
+  // Kontakt (f.eks. nav-klikk) rekker ikke fjæra å dekke prosjektene i tide,
+  // og de blir stående synlige oppå paraplyen. Legg til en direkte
+  // opacity-fade rett før Kontakt som sikkerhetsnett, uavhengig av fjæra.
+  const prosjOp    = useTransform(scrollY, [3.05*vh, 3.28*vh, 4.60*vh, 4.80*vh], [0, 1, 1, 0])
   const prosjPushY = useMotionValue(0)
 
   // Ferdigheter-kort samler seg til haug rett før prosjekter-fasen
@@ -323,7 +384,12 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
   const umbrellaEntryScaleRaw = useTransform(scrollY, [3.90*vh, 4.45*vh], [0.86, 1])
   const umbrellaEntryScale    = useSpring(umbrellaEntryScaleRaw, { stiffness: 40, damping: 22 })
   const umbrellaImgOp    = useTransform(scrollY, [3.88*vh, 3.94*vh], [0, 1])
-  const kontaktInnholdOp = useTransform(scrollY, [4.50*vh, 4.70*vh], [0, 1])
+  // Kontaktinnholdet skal vente på at paraplyen faktisk har landet (fjæra
+  // henger etter rå scroll og bruker ca. 1,5s på å sette seg uansett
+  // scrollhastighet) — ellers dukker innholdet opp før paraplyen er på plass.
+  const kontaktInnholdOpUmbrella = useTransform(umbrellaY, [umbrellaFinalY + 60, umbrellaFinalY], [0, 1])
+  const kontaktInnholdOpScroll   = useTransform(scrollY, [4.50*vh, 4.70*vh], [0, 1])
+  const kontaktInnholdOp = showUmbrella ? kontaktInnholdOpUmbrella : kontaktInnholdOpScroll
   
  
   
@@ -352,7 +418,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       <div
         ref={kontaktRef}
         data-id="kontakt"
-        style={{ position: "absolute", top: "460vh", scrollSnapAlign: "start" }}
+        style={{ position: "absolute", top: "485vh", scrollSnapAlign: "start" }}
       />
       <div
         ref={sectionRef}
@@ -791,7 +857,9 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
           style={{
             position: "absolute",
             bottom: frameInset + 60,
-            right: frameInset + 250,
+            // Fast 250px-forskyvning presser hintet forbi venstre rammelinje
+            // på smale mobilskjermer — bruk en mindre, trygg avstand der.
+            right: isMobile ? frameInset + 40 : frameInset + 250,
             zIndex: 6,
             display: "flex",
             flexDirection: "column",
@@ -883,9 +951,13 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
           opacity: kontaktInnholdOp,
           pointerEvents: kontaktActive ? "auto" : "none",
           display: "flex",
-          alignItems: showUmbrella ? "flex-start" : "center",
+          // Uten paraply (mobil/nettbrett) sentrerte innholdet seg i HELE
+          // viewporten, som kunne dytte toppen av kortet opp under/bak den
+          // faste seksjonnavn-lappen ("Kontakt") i navigasjonen. Forankre
+          // til toppen med nok padding til å klare den i stedet.
+          alignItems: "flex-start",
           justifyContent: "center",
-          paddingTop: showUmbrella ? kontaktPadTop : 0,
+          paddingTop: showUmbrella ? kontaktPadTop : frameInset + 56,
         }}
       >
         <KontaktInnhold
