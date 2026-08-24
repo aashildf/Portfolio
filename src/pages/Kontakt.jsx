@@ -628,7 +628,6 @@ const etikett = {
 };
 
 const CARD_PAD = "clamp(28px, 2.4vw, 44px)";
-const CARD_W = "clamp(260px, 32vw, 420px)";
 const INNER_OUTLINE = "1px solid rgba(0,0,0,0.12)"
 
 const MONO      = "'Courier Prime', 'Courier New', monospace"
@@ -665,7 +664,7 @@ const MONO      = "'Courier Prime', 'Courier New', monospace"
 
 
 // 1.kontaktinfo
-export function KontaktInnhold({ isMobile }) {
+export function KontaktInnhold({ isMobile, vw = 1440, availH = 500 }) {
   const [showVisittkort, setShowVisittkort] = useState(false)
 
   //  høyre-offset for kopp-kort, slik at det ikke går utenfor rammen
@@ -767,6 +766,21 @@ export function KontaktInnhold({ isMobile }) {
   }
 
 
+  // Kortbredden er tunet for romslige desktop-skjermer — på brede MEN korte
+  // skjermer (bærbar med skjermskalering) må den også begrenses av
+  // tilgjengelig høyde (`availH`, regnet ut av kalleren — tar hensyn til at
+  // paraplyen selv spiser av høyden ovenfra), ellers stikker kortene under
+  // rammen. Forholdet 0.92 er kalibrert empirisk: total korthøyde
+  // (fotoflate + padding/tape/etikett) endte på ~92 % av kortbredden.
+  const desktopCardWByWidth  = Math.min(420, Math.max(260, vw * 0.32))
+  // Minstemål 300px: kontaktkortets 4 rader (ikon+tekst) har en fast
+  // pikselhøyde som ikke krymper med kortet — under ~300px bredde blir
+  // fotoflaten for kort til at siste rad (LinkedIn) får plass, og teksten
+  // klippes. Da heller et lite overheng nederst enn avkuttet innhold.
+  const desktopCardWByHeight = Math.max(300, availH / 0.92)
+  const desktopCardW         = Math.round(Math.min(desktopCardWByWidth, desktopCardWByHeight))
+  const desktopPaddingBottom = 24
+
   return (
     <div
       style={{
@@ -775,7 +789,7 @@ export function KontaktInnhold({ isMobile }) {
         alignItems: "flex-start",
         gap: "clamp(32px, 4.5vw, 60px)",
         paddingTop: 30,
-        paddingBottom: "clamp(140px, 16vw, 220px)",
+        paddingBottom: desktopPaddingBottom,
       }}
     >
       {showVisittkort && (
@@ -789,7 +803,7 @@ export function KontaktInnhold({ isMobile }) {
           ...kortBase,
           padding: CARD_PAD,
           paddingBottom: `calc(${CARD_PAD} + 38px)`,
-          width: CARD_W,
+          width: desktopCardW,
           flexShrink: 0,
         }}
       >
@@ -826,8 +840,12 @@ export function KontaktInnhold({ isMobile }) {
             display: "flex",
             flexDirection: "column",
             justifyContent: "flex-start",
-            padding: "clamp(14px, 2vw, 26px)",
-            paddingTop: "clamp(28px, 4vw, 48px)",
+            // Padding basert på selve kortbredden (ikke viewport-vw) — på et
+            // kort som er krympet for å få plass i høyden, ga en vw-basert
+            // topppadding for mye luft over teksten og for lite plass igjen
+            // til siste rad.
+            padding: Math.round(desktopCardW * 0.055),
+            paddingTop: Math.round(desktopCardW * 0.09),
             gap: "clamp(5px, 0.65vw, 10px)",
           }}>
             {KONTAKT_INFO.map(({ label, href, Icon }) => {
@@ -868,7 +886,7 @@ export function KontaktInnhold({ isMobile }) {
         style={{
           ...kortBase,
           padding: CARD_PAD,
-          width: CARD_W,
+          width: desktopCardW,
           flexShrink: 0,
         }}
       >

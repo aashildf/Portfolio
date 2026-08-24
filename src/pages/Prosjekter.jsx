@@ -78,7 +78,7 @@ const linkStyle = {
   transition: "background 0.15s ease, border-color 0.15s ease",
 }
 
-export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw, frameInset }) {
+export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw, vh, frameInset }) {
   const [sceneOpen, setSceneOpen] = useState(false)
   const [flipped, setFlipped] = useState(prosjekter.map(() => false))
 
@@ -94,13 +94,32 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
   const gap       = prosjGap
   const cols      = vw < 1050 ? 2 : 3
   const MAX_CARD  = cols === 3 ? 262 : 220
-  const gridMaxW  = cols * MAX_CARD + (cols - 1) * gap
-  const contW     = Math.min(vw - 2 * (frameInset + 1) - gap * 2, gridMaxW)
-  const cardW     = (contW - (cols - 1) * gap) / cols
-  const cardH     = cardW * (4 / 5)
-
   const numCards  = 1 + prosjekter.length
   const totalRows = Math.ceil(numCards / cols)
+
+  const gridMaxWRaw   = cols * MAX_CARD + (cols - 1) * gap
+  const contW         = Math.min(vw - 2 * (frameInset + 1) - gap * 2, gridMaxWRaw)
+  const widthCardW    = (contW - (cols - 1) * gap) / cols
+  // Høydebegrensning: brede-men-korte skjermer (bærbar med skjermskalering)
+  // har ikke plass til kort som kun er dimensjonert ut fra bredden — de kan
+  // da bli høyere enn selve rammen. Det FAKTISKE kortet er høyere enn bare
+  // fotoflaten (aspectRatio 5/4) — padding (18+36px) og etikett-teksten
+  // under legger til ca. 84px chrome som ikke skalerer med kortstørrelsen.
+  // Regn ut fra den faktiske korthøyden, ellers blir kortene fortsatt for
+  // store selv etter "fiksen".
+  const CARD_CHROME_H = 84
+  // -12 sikkerhetsmargin: uten den ble kortene beregnet til å ende nøyaktig
+  // på rammekanten (under 2px margin) — for tynt til å tåle avrundinger.
+  const availH         = vh - 2 * (frameInset + 1) - 12
+  const rowBudget      = (availH - (totalRows - 1) * gap) / totalRows
+  const photoHByHeight = Math.max(60, rowBudget - CARD_CHROME_H)
+  // Minstemål 90px fotohøyde: under det får ikke tittel/undertekst/knapp
+  // plass i kortet uten å overlappe — da heller et lite overheng nederst
+  // enn ødelagt innhold.
+  const cardWByHeight = Math.max(160, (photoHByHeight / (4 / 5)) + 32)
+  const cardW         = Math.max(160, Math.min(widthCardW, cardWByHeight))
+  const cardH         = cardW * (4 / 5)
+  const gridMaxW      = cols * cardW + (cols - 1) * gap
   const cx        = (cols - 1) / 2
   const cy        = (totalRows - 1) / 2
 

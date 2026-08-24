@@ -105,18 +105,22 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       if (animating) cancelAnim()
     }
 
-    const MIN_INTENT = 6 // px — filtrerer bort støy, men fanger selv små bevisste scroll
+    // px — filtrerer bort støy OG svak treghets-etterslep (som typisk er
+    // noen få px per rest-tick), men fanger fortsatt en bevisst, liten scroll
+    const MIN_INTENT = 16
 
     const onScroll = () => {
       if (animating) return // ignorer scroll-events generert av vår egen animasjon
 
       clearTimeout(debounceTimer)
-      // Ekte scroll skal reagere raskt (60ms). Programmatiske hopp (nav-klikk)
-      // bruker en lengre, mer tålmodig ventetid — en lang scrollIntoView-
-      // animasjon kan ha ujevne frame-mellomrom, og en kort debounce kan da
-      // feilaktig tolke et hakk midtveis som "ferdig scrollet" og kapre
-      // animasjonen til et helt annet (nærmeste-der-og-da) punkt.
-      const delay = userScrolling ? 60 : 220
+      // Ekte maskinvare (styreflate/mus) leverer ofte et "etterslep" av
+      // svake scroll-events lenge etter at brukeren fysisk sluttet å bevege
+      // seg (treghet/momentum) — med pauser som lett overstiger en kort
+      // debounce. Er ventetiden for kort, blir dette etterslepet feiltolket
+      // som en helt NY, separat scrollbevegelse rett etter at den første er
+      // korrekt fullført, og gir et ekstra, uønsket steg videre. Vent derfor
+      // en god stund med ro før vi bestemmer oss.
+      const delay = userScrolling ? 260 : 220
       debounceTimer = setTimeout(() => {
         const y = window.scrollY
         const points = getPoints()
@@ -159,8 +163,12 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
   const vh = win.h
   const isMobile   = vw < 600
   const isTablet   = !isMobile && vw < 1050
-  // Continuous frameInset: 36px at 375vw → 100px at 1440vw
-  const frameInset = Math.round(Math.max(36, Math.min(100, 36 + (vw - 375) * 64 / 1065)))
+  // Continuous frameInset: 36px at 375vw → 100px at 1440vw. På svært lave
+  // skjermer (bred-men-kort bærbar) tar rammemarginen for mye av den
+  // knappe høyden — trekk den sammen der, ellers blir det for lite plass
+  // igjen til innholdet.
+  const frameInsetByWidth = Math.max(36, Math.min(100, 36 + (vw - 375) * 64 / 1065))
+  const frameInset = Math.round(Math.max(24, Math.min(frameInsetByWidth, vh * 0.1)))
 
   // ─── Scroll-indikator ────────────────────────────────────────────────────────
   const scrollHintOp = useTransform(scrollY, [0, 0.12 * vh], [1, 0])
@@ -188,10 +196,19 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
     [0.45*vh, 0.62*vh, 1.38*vh, 1.44*vh], [0, 1, 1, 0])
 
   const CARD_GAP  = 16
-  // cardW = halvparten av Om Meg-kortets bredde → 4 biter tiler perfekt uten gap
-  const omCardW   = Math.round(Math.min(860, Math.max(500, vw * 0.72)))
-  const frameInsetLocal = Math.round(Math.max(36, Math.min(100, 36 + (vw - 375) * 64 / 1065)))
-  const maxCardW  = Math.floor((vw - 2 * frameInsetLocal - 1 - CARD_GAP) / 2)
+  // cardW = halvparten av Om Meg-kortets bredde → 4 biter tiler perfekt uten gap.
+  // Samme resonnement som i OmMeg.jsx: på brede MEN korte skjermer (bærbar
+  // med skjermskalering) må bredden også begrenses av tilgjengelig høyde,
+  // ellers blir kvadrant-rutenettet høyere enn rammen har plass til.
+  const omImgAspect       = 1380 / 1258
+  const availGridH        = vh - 2 * (frameInset + 1) - CARD_GAP - 24
+  // Minstemål ~780px (kvadrant-bredde ~390px): under det får ikke kortenes
+  // faste tekstinnhold (tittel/undertekst/beskrivelse/"les mer", og
+  // baksidens forklaringstekst) plass — teksten overlapper seg selv eller
+  // blir avkuttet.
+  const maxOmCardWByHeight = Math.max(760, Math.floor((availGridH / omImgAspect) * 2))
+  const omCardW   = Math.round(Math.min(860, Math.max(500, vw * 0.72), maxOmCardWByHeight))
+  const maxCardW  = Math.floor((vw - 2 * frameInset - 1 - CARD_GAP) / 2)
   const cardW     = (isMobile || isTablet) ? Math.min(Math.round(omCardW / 2), maxCardW) : Math.round(omCardW / 2)
   // Image natural size: 1258×1380. Image renders at cardW wide, so card height = cardW*(1380/1258).
   // Each quadrant = half the card height → cardH = cardW * 1380 / (2 * 1258)
@@ -350,8 +367,12 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
   const ASPECT_H = (14829 / 18196) * 0.48  // paraplyhøyde som andel av bredde
 
   // Kontinuerlig skala: tar alltid den største av vw-basert og vh-basert formel
-  // → skalerer sømløst uten hopp ved breakpoints
-  const umbrellaScale = Math.min(2.20, Math.max(0.80,
+  // → skalerer sømløst uten hopp ved breakpoints. Øvre grense: paraplyen
+  // skal aldri bli høyere enn ~65 % av skjermhøyden — ellers stikker
+  // toppen opp over rammen/navigasjonen OG spiser for mye av høyden som
+  // kontaktkortene under trenger, på brede-men-korte skjermer (typisk
+  // bærbar med skjermskalering).
+  const umbrellaScale = Math.min(2.20, (vh * 0.65) / (vw * ASPECT_H), Math.max(0.80,
     Math.max(
       0.80 + (vw - 375) * 0.20 / 675,          // vw-drevet (desktop)
       (vh * 0.70) / (vw * ASPECT_H)             // vh-drevet (høye/smale skjermer)
@@ -367,15 +388,40 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
     ? Math.round(vh * 0.44 - umbrellaH * HANDLE_FRAC - 24)
     : -vh
   const umbrellaLeft     = Math.round(vw / 2 - umbrellaW / 2)
-  const kontaktPadTop    = showUmbrella
+  const kontaktPadTopIdeal = showUmbrella
     ? Math.round(umbrellaFinalY + umbrellaH * HANDLE_FRAC) + 24
     : 0
+  // Kontaktkortene har en minstestørrelse (se Kontakt.jsx) under hvilken
+  // innholdet deres ikke får plass. Hvis den "ideelle" paraply-posisjonen
+  // (~44 % av vh) ikke etterlater nok plass til DEN minstestørrelsen på
+  // lave skjermer, må paraplyen (og dermed kortene) flyttes høyere opp —
+  // ellers stikker kortenes nedre kant under rammen.
+  const MIN_KONTAKT_CARD_H = 301
+  const trueAvailHIdeal = (vh - frameInset - 1) - (kontaktPadTopIdeal + 30)
+  const kontaktPadTop = showUmbrella
+    ? Math.max(20, trueAvailHIdeal < MIN_KONTAKT_CARD_H
+        ? kontaktPadTopIdeal - (MIN_KONTAKT_CARD_H - trueAvailHIdeal)
+        : kontaktPadTopIdeal)
+    : 0
+  // Reell plass igjen til kontaktkortene UNDER paraplyens håndtak — brukes
+  // til å størrelsestilpasse kortene i stedet for å gjette ut fra rå vh,
+  // som ikke tar høyde for at paraplyen selv spiser av høyden ovenfra.
+  const kontaktAvailH = Math.max(160, (vh - frameInset - 1) - (kontaktPadTop + 30) - 20)
 
   // Horisontale prosent-grenser for regn-filtrering (d.x er 0–100 %)
 // Paraplyen stiger OPP etter at regnet har dekket prosjektene
   const umbrellaYRaw     = useTransform(scrollY, [3.90*vh, 4.45*vh], [vh * 1.05, umbrellaFinalY])
   const umbrellaY        = useSpring(umbrellaYRaw, { stiffness: 40, damping: 22 })
-  const prosjMask = useTransform(umbrellaY, y => {
+  // Masken (umbrellaY) er fjær-basert og kan henge etter i opptil ~1,5-2s
+  // etter et besøk på Kontakt (fjæra bruker reell tid på å falle tilbake
+  // til hvileposisjon, uavhengig av hvor fort man scroller/klikker seg
+  // tilbake til Prosjekter). Uten en vakt her kan prosjektrutenettet vises
+  // delvis "gjennomsiktig"/fadet lenge etter at man faktisk har forlatt
+  // paraply-sonen. Koble derfor på/av med rå scrollY (oppdateres momentant,
+  // ingen etterslep) — masken skal uansett bare være aktiv mens paraplyen
+  // faktisk stiger (3.90-4.45vh) eller står ferdig hevet (Kontakt).
+  const prosjMask = useTransform([scrollY, umbrellaY], ([sy, y]) => {
+    if (sy < 3.85 * vh) return 'none'
     const canopyY = y + CANOPY_FRAC * umbrellaH   // faktisk spissposisjon
     const clipPx  = Math.max(0, vh - frameInset - 1 - canopyY)
     const fade    = 50
@@ -478,6 +524,8 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
           newOmOp={newOmOp}
           frameInset={frameInset}
           cardRef={omMegCardRef}
+          vw={vw}
+          vh={vh}
         />
 
         {/* ─── Unified kort: Om Meg-lag + flip-animasjon foran/bak ───────────────── */}
@@ -848,6 +896,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
             prosjActive={prosjActive}
             prosjSpredt={prosjSpredt}
             vw={vw}
+            vh={vh}
             frameInset={frameInset}
           />
         </motion.div>
@@ -964,6 +1013,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
           isMobile={isMobile || !showUmbrella}
           frameInset={frameInset}
           vw={vw}
+          availH={kontaktAvailH}
           visible={kontaktActive}
         />
       </motion.div>

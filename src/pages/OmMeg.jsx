@@ -1,16 +1,70 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BASE } from '../utils/assetUrl'
 import { motion, useMotionValueEvent } from 'framer-motion'
 import drawingBlue from '../../assets/bilder/om_meg_bilder/blue_me_cutout.jpg'
 import ashildCutout from '../../assets/bilder/om_meg_bilder/ashild_cutout.png'
 import ScratchReveal from '../components/ScratchReveal'
 
-export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, cardRef }) {
+const HINT_TEXT = "Skrap her"
+
+// Korte "oppmerksomhets-streker" fordelt symmetrisk rundt hjørnet over
+// teksten, som solstråler på en barnetegning — men kortere og bare et
+// omriss, ikke en hel sirkel. Symmetrisk om 270° (rett opp), 200° totalt.
+const RAY_ANGLES = [170, 210, 250, 290, 330, 10]
+const RAY_STAGGER_S = 0.45
+const RAY_DURATION_S = 0.3
+const RAYS_TOTAL_MS = ((RAY_ANGLES.length - 1) * RAY_STAGGER_S + RAY_DURATION_S) * 1000
+
+export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, cardRef, vw, vh }) {
   const [drawn, setDrawn] = useState(false)
+  const [scratchHintVisible, setScratchHintVisible] = useState(true)
+  const [hasScratched, setHasScratched] = useState(false)
+  const [arrowDrawn, setArrowDrawn] = useState(false)
+  const [raysDrawn, setRaysDrawn] = useState(false)
+  const [showScratchDemo, setShowScratchDemo] = useState(false)
   useMotionValueEvent(newOmOp, "change", (v) => {
     if (v > 0.5) setDrawn(true)
     else setDrawn(false)
   })
+
+  // Hintet skal ikke dukke opp før seksjonen faktisk er skrolt inn —
+  // scroll-animasjonen inn hit tar litt tid, og hvis vi starter ved mount
+  // (uavhengig av om noen har sett siden ennå) er hintet nesten ferdig
+  // avspilt før brukeren rekker å se det. "Skrap her" står ferdig skrevet
+  // med en gang (skriveeffekt virket distraherende) — bare pilen og
+  // strålene animeres inn, rett etter at hint-boksen er faded inn.
+  useEffect(() => {
+    if (!drawn) return
+    const timeout = setTimeout(() => setArrowDrawn(true), 500)
+    return () => clearTimeout(timeout)
+  }, [drawn])
+
+  // Oppmerksomhets-strekene venter en liten stund etter pilen før de
+  // begynner å tegnes, så de ikke dukker opp for tett på resten av hintet.
+  useEffect(() => {
+    if (!arrowDrawn) return
+    const timeout = setTimeout(() => setRaysDrawn(true), 3600)
+    return () => clearTimeout(timeout)
+  }, [arrowDrawn])
+
+  // Skrape-demoen på selve bildet spilles bare av — og først godt etter at
+  // ALLE strålene er helt ferdig tegnet — hvis brukeren ikke har begynt å
+  // skrape selv innen rimelig tid.
+  useEffect(() => {
+    if (!raysDrawn || hasScratched) return
+    const timeout = setTimeout(() => setShowScratchDemo(true), RAYS_TOTAL_MS + 1800)
+    return () => clearTimeout(timeout)
+  }, [raysDrawn, hasScratched])
+
+  // Desktop/nettbrett: bildet ligger i venstre HALVDEL av kortet, med
+  // høyde = (kortbredde/2) * bilde-aspektforhold (1380/1258). På brede MEN
+  // KORTE skjermer (typisk bærbar med skjermskalering) kan dette bli høyere
+  // enn selve rammen har plass til. Regn ut bredden i JS (ikke bare CSS
+  // clamp) slik at vi kan begrense den av tilgjengelig høyde også.
+  const availCardH  = vh - 2 * (frameInset + 1) - 24 // liten margin
+  const imgAspect    = 1380 / 1258
+  const maxWByHeight = Math.floor((availCardH / imgAspect) * 2)
+  const desktopCardW = Math.round(Math.min(860, Math.max(500, vw * 0.72), maxWByHeight))
 
   return (
     <motion.div
@@ -29,35 +83,132 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
         overflow: "hidden",
       }}
     >
-      <div
-        ref={cardRef}
-        style={{
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          position: "relative",
-          // Mobil: kortet stables i én kolonne, så bildet får HELE denne
-          // bredden (ikke halvparten som på desktop) — en 500px-bunngrense
-          // gir et altfor høyt bilde som flyter utenfor rammen/skjermen.
-          width: isMobile ? "min(85vw, 380px)" : "clamp(500px, 72vw, 860px)",
-          borderRadius: 0,
-          overflow: "hidden",
-          boxShadow: "var(--shadow-card)",
-          marginLeft: isMobile ? 16 : isTablet ? 24 : 0,
-          marginRight: isMobile ? 16 : isTablet ? 24 : 0,
-        }}
-      >
-        {/* Bilde-halvdel — skrapelodd-effekt avslører ashild_cutout.png under */}
-        <div style={{ flex: "0 0 50%", pointerEvents: "auto" }}>
-          <ScratchReveal
-            topSrc={drawingBlue}
-            bottomSrc={ashildCutout}
-            alt="Åshild Færøy"
-            active={drawn}
-          />
-        </div>
+      <div style={{ position: "relative" }}>
+        {/* Skrap-hint — ligger utenfor/over kortet og peker ned mot bildets øvre venstre hjørne */}
+        {scratchHintVisible && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: drawn ? 1 : 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            style={{
+              position: "absolute",
+              top: -58,
+              left: 4,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 2,
+              pointerEvents: "none",
+              zIndex: 4,
+            }}
+          >
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-hand)",
+                  fontSize: "clamp(13px, 1.2vw, 18px)",
+                  color: "#274B66",
+                  letterSpacing: "0.08em",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {HINT_TEXT}
+              </span>
+              {raysDrawn && (
+                <svg
+                  viewBox="0 0 130 130"
+                  width="130"
+                  height="130"
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    overflow: "visible",
+                    pointerEvents: "none",
+                  }}
+                >
+                  {RAY_ANGLES.map((deg, i) => {
+                    const rad = (deg * Math.PI) / 180
+                    const cx = 65, cy = 65
+                    const r1 = 46, r2 = 64
+                    const x1 = cx + r1 * Math.cos(rad)
+                    const y1 = cy + r1 * Math.sin(rad)
+                    const x2 = cx + r2 * Math.cos(rad)
+                    const y2 = cy + r2 * Math.sin(rad)
+                    return (
+                      <motion.line
+                        key={deg}
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke="rgba(55,90,160,0.55)"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: 1 }}
+                        transition={{ duration: RAY_DURATION_S, delay: i * RAY_STAGGER_S, ease: "easeOut" }}
+                      />
+                    )
+                  })}
+                </svg>
+              )}
+            </div>
+            <motion.svg
+              viewBox="0 0 16 22"
+              width="14"
+              height="20"
+              style={{ display: "block", overflow: "visible" }}
+              animate={arrowDrawn ? { y: [0, 4, 0] } : { y: 0 }}
+              transition={{
+                duration: 1.4,
+                repeat: arrowDrawn ? Infinity : 0,
+                ease: "easeInOut",
+              }}
+            >
+              <path
+                d="M 8,1 L 8,15 M 3,10 L 8,16 L 13,10"
+                fill="none"
+                stroke="rgba(55,90,160,0.7)"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </motion.svg>
+          </motion.div>
+        )}
 
-        {/* Tekst-halvdel — absolutt posisjonert så bildets høyde bestemmer kortets høyde */}
         <div
+          ref={cardRef}
+          style={{
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            position: "relative",
+            // Mobil: kortet stables i én kolonne, så bildet får HELE denne
+            // bredden (ikke halvparten som på desktop) — en 500px-bunngrense
+            // gir et altfor høyt bilde som flyter utenfor rammen/skjermen.
+            width: isMobile ? "min(85vw, 380px)" : desktopCardW,
+            borderRadius: 0,
+            overflow: "hidden",
+            boxShadow: "var(--shadow-card)",
+            marginLeft: isMobile ? 16 : isTablet ? 24 : 0,
+            marginRight: isMobile ? 16 : isTablet ? 24 : 0,
+          }}
+        >
+          {/* Bilde-halvdel — skrapelodd-effekt avslører ashild_cutout.png under */}
+          <div style={{ flex: "0 0 50%", pointerEvents: "auto" }}>
+            <ScratchReveal
+              topSrc={drawingBlue}
+              bottomSrc={ashildCutout}
+              alt="Åshild Færøy"
+              onScratchStart={() => { setScratchHintVisible(false); setHasScratched(true) }}
+              triggerHint={showScratchDemo}
+            />
+          </div>
+
+          {/* Tekst-halvdel — absolutt posisjonert så bildets høyde bestemmer kortets høyde */}
+          <div
           style={{
             ...(isMobile
               ? { flex: "0 0 auto" }
@@ -202,21 +353,21 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
               gap: 6,
             }}
           >
-            {/* Bouncing arrow */}
+            {/* Bouncing arrow — dukker først opp når brukeren har skrapt */}
             <motion.svg
               viewBox="0 0 16 22"
               width="14"
               height="20"
               style={{ display: "block", overflow: "visible" }}
               initial={{ opacity: 0 }}
-              animate={{ opacity: drawn ? 1 : 0 }}
-              transition={{ duration: 0.5, delay: 5.2 }}
+              animate={{ opacity: hasScratched ? 1 : 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
             >
               <motion.g
-                animate={drawn ? { y: [0, 5, 0] } : { y: 0 }}
+                animate={hasScratched ? { y: [0, 5, 0] } : { y: 0 }}
                 transition={{
                   duration: 1.4,
-                  repeat: drawn ? Infinity : 0,
+                  repeat: hasScratched ? Infinity : 0,
                   ease: "easeInOut",
                 }}
               >
@@ -243,16 +394,16 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
                 cy={5.5}
                 fill="rgba(55, 90, 160, 0.6)"
                 initial={{ r: 0, opacity: 0 }}
-                animate={{ r: drawn ? 1.4 : 0, opacity: drawn ? 1 : 0 }}
-                transition={{ duration: 0.1, delay: 5.6 }}
+                animate={{ r: hasScratched ? 1.4 : 0, opacity: hasScratched ? 1 : 0 }}
+                transition={{ duration: 0.1, delay: 0.35 }}
               />
               <motion.circle
                 cx={14}
                 cy={5.8}
                 fill="rgba(55, 90, 160, 0.6)"
                 initial={{ r: 0, opacity: 0 }}
-                animate={{ r: drawn ? 1.2 : 0, opacity: drawn ? 1 : 0 }}
-                transition={{ duration: 0.1, delay: 5.75 }}
+                animate={{ r: hasScratched ? 1.2 : 0, opacity: hasScratched ? 1 : 0 }}
+                transition={{ duration: 0.1, delay: 0.4 }}
               />
               <motion.path
                 d="M 5,11 C 6,16 15,15.5 16,11"
@@ -261,12 +412,13 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
                 strokeWidth="1.1"
                 strokeLinecap="round"
                 initial={{ pathLength: 0 }}
-                animate={{ pathLength: drawn ? 1 : 0 }}
-                transition={{ duration: 0.65, ease: "easeInOut", delay: 5.9 }}
+                animate={{ pathLength: hasScratched ? 1 : 0 }}
+                transition={{ duration: 0.65, ease: "easeInOut", delay: 0.5 }}
               />
             </svg>
           </div>
         </div>
+      </div>
       </div>
     </motion.div>
   );
