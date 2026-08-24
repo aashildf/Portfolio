@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react'
 import { BASE } from '../utils/assetUrl'
 import { motion, useMotionValueEvent } from 'framer-motion'
 import drawingBlue from '../../assets/bilder/om_meg_bilder/blue_me_cutout.jpg'
-import ashildCutout from '../../assets/bilder/om_meg_bilder/ashild_cutout.png'
 import ScratchReveal from '../components/ScratchReveal'
 
-const HINT_TEXT = "Skrap her"
+const HINT_TEXT = "skrap her"
 
 // Korte "oppmerksomhets-streker" fordelt symmetrisk rundt hjørnet over
-// teksten, som solstråler på en barnetegning — men kortere og bare et
-// omriss, ikke en hel sirkel. Symmetrisk om 270° (rett opp), 200° totalt.
+// teksten, Symmetrisk om 270° (rett opp), 200° totalt.
 const RAY_ANGLES = [170, 210, 250, 290, 330, 10]
 const RAY_STAGGER_S = 0.45
 const RAY_DURATION_S = 0.3
@@ -196,11 +194,11 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
             marginRight: isMobile ? 16 : isTablet ? 24 : 0,
           }}
         >
-          {/* Bilde-halvdel — skrapelodd-effekt avslører ashild_cutout.png under */}
+          {/* Bilde-halvdel — skrapelodd-effekt avslører ommeg_bilde.jpg under */}
           <div style={{ flex: "0 0 50%", pointerEvents: "auto" }}>
             <ScratchReveal
               topSrc={drawingBlue}
-              bottomSrc={ashildCutout}
+              bottomSrc={`${BASE}ommeg_bilde.jpg`}
               alt="Åshild Færøy"
               onScratchStart={() => { setScratchHintVisible(false); setHasScratched(true) }}
               triggerHint={showScratchDemo}
