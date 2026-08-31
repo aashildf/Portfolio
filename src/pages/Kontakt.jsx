@@ -672,8 +672,16 @@ export function KontaktInnhold({ isMobile, vw = 1440, availH = 500 }) {
   if (isMobile) {
     const INK = "rgba(18, 12, 4, 0.92)"
     const MOB_W = "min(260px, 82vw)"
+    // Koppekortet overlapper videokortet i stedet for å legge til høyde
+    // nedover. En fast overlapp holdt ikke på korte skjermer (der er det
+    // langt mindre plass å avse) — skaler den med availH, slik at det alltid
+    // ender innenfor rammen i stedet for at man trenger scroll.
+    const cupOverlap = Math.round(Math.max(70, Math.min(280, 760 - availH)))
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "0 16px", transform: "translateY(-16px)" }}>
+      <div style={{
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 20,
+        padding: "0 16px", transform: "translateY(-16px)",
+      }}>
 
         {/* Mobil kontaktkort */}
         <div className="pcrd pcrd-instax native-cursor"
@@ -736,11 +744,13 @@ export function KontaktInnhold({ isMobile, vw = 1440, availH = 500 }) {
           <div style={{ ...etikett, paddingTop: 10 }}>Åshild Færøy</div>
         </div>
 
-        {/* Mobil koppekort — liten, nederst */}
+        {/* Mobil koppekort — liten, overlapper videokortet over med vilje
+            (som et bilde kastet oppå bunken) i stedet for å legge til
+            høyde nedover — det var det som trengte scroll i rammen før. */}
         <a
           href={MAIL_HREF}
           className="pcrd pcrd-instax"
-          style={{ ...kortBase, padding: "14px 14px 14px", width: "min(148px, 40vw)", textDecoration: "none", transform: "rotate(2deg)" }}
+          style={{ ...kortBase, padding: "14px 14px 14px", width: "min(148px, 40vw)", textDecoration: "none", transform: "rotate(2deg)", marginTop: -cupOverlap, position: "relative", zIndex: 2 }}
         >
           <div style={{ position: "relative" }}>
             <div style={{ position: "absolute", bottom: "100%", left: 0, right: 0, display: "flex",

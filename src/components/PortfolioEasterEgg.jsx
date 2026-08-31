@@ -29,7 +29,10 @@ const CONFETTI = [
 const FONT_PX       = 8
 const LINE_H_PX     = FONT_PX * 1.5
 const MAX_LINES     = 3
-const TERM_H        = MAX_LINES * LINE_H_PX + 14
+// +14 var for stramt på enheter uten Consolas installert (bl.a. iOS) — de
+// faller tilbake på en annen monospace-font med litt annen linjehøyde enn
+// LINE_H_PX antar, og bunnlinja ble avkuttet av height+overflow:hidden.
+const TERM_H        = MAX_LINES * LINE_H_PX + 22
 const EXTRA_H       = TERM_H - 4
 const CURSOR_PRE_MS = 1300
 

@@ -91,9 +91,14 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
     setFlipped(f => f.map((v, j) => j === i ? !v : v))
   }
 
+  const isMobile  = vw < 600
   const gap       = prosjGap
-  const cols      = vw < 1050 ? 2 : 3
-  const MAX_CARD  = cols === 3 ? 262 : 220
+  // Mobil: én kolonne i stedet for to — baksiden av kortene (tittel +
+  // beskrivelse + lenker) hadde ikke plass til teksten i den smale
+  // to-kolonners bredden. Én bred kolonne løser det uten å endre
+  // snu-interaksjonen.
+  const cols      = isMobile ? 1 : vw < 1050 ? 2 : 3
+  const MAX_CARD  = cols === 3 ? 262 : cols === 2 ? 220 : 340
   const numCards  = 1 + prosjekter.length
   const totalRows = Math.ceil(numCards / cols)
 
@@ -117,7 +122,23 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
   // plass i kortet uten å overlappe — da heller et lite overheng nederst
   // enn ødelagt innhold.
   const cardWByHeight = Math.max(160, (photoHByHeight / (4 / 5)) + 32)
-  const cardW         = Math.max(160, Math.min(widthCardW, cardWByHeight))
+  // Mobil med 1 kolonne betyr 7 rader stablet nedover — det får aldri plass
+  // innenfor rammehøyden uten at høydebegrensningen tvinger kortet smalt
+  // igjen (samme problem vi prøver å løse). La bredden bestemme fritt der,
+  // og gjør heller listen scrollbar (se maxHeight/overflowY på griden under)
+  // i stedet for å presse alle 7 kortene inn i én skjerm.
+  const cardW         = isMobile
+    ? Math.max(160, widthCardW)
+    : Math.max(160, Math.min(widthCardW, cardWByHeight))
+  // Prøvde å gi baksideteksten mer plass ved å gjøre fotoboksen høyere enn
+  // det naturlige 5/4-sideforholdet (object-fit: cover fyller resten) — men
+  // prosjektbildene har ulikt naturlig sideforhold seg imellom, så ENHVER
+  // ekstra høyde beskjærer et eller annet bilde synlig galt (noen mister
+  // innhold i sidekantene, andre i toppen — f.eks. tittelen på et av
+  // prosjektene). Eneste måte å garantere at ingen bilder beskjæres utover
+  // det opprinnelige 5/4-forholdet, er å ikke legge til noe ekstra her.
+  // Baksideteksten får i stedet scrolle ved behov (samme sikkerhetsnett
+  // som på Ferdigheter-kortene) fremfor å ofre bildevisningen.
   const cardH         = cardW * (4 / 5)
   const gridMaxW      = cols * cardW + (cols - 1) * gap
   const cx        = (cols - 1) / 2
@@ -142,6 +163,13 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
         maxWidth: gridMaxW,
         boxSizing: "border-box",
         alignItems: "start",
+        // Mobil: 7 kort i én kolonne blir tallet høyere enn rammen — la
+        // listen scrolle i stedet for å tvinge kortene smale igjen. Trekker
+        // fra litt av høyden (ikke bare availH) — ellers fyller listen HELE
+        // rammehøyden og den ytre sentreringen får ingen luft å fordele,
+        // så toppen av det øverste kortet dytter helt opp i hjem-ikonet.
+        maxHeight: isMobile ? availH - 50 : undefined,
+        overflowY: isMobile ? "auto" : "visible",
       }}
     >
       <PortfolioEasterEgg
@@ -255,14 +283,20 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
                 border: '1px solid rgba(0,0,0,0.13)',
                 display: 'flex',
                 flexDirection: 'column',
-                padding: 'clamp(10px, 1.1vw, 16px)',
-                gap: 'clamp(5px, 0.5vw, 8px)',
-                overflow: 'hidden',
+                padding: isMobile ? '18px' : 'clamp(10px, 1.1vw, 16px)',
+                gap: isMobile ? '10px' : 'clamp(5px, 0.5vw, 8px)',
+                overflowX: 'hidden',
+                // Sikkerhetsnett: på smale kort (mobil) kan tittel + knapper +
+                // "tilbake" alene spise all plassen og presse beskrivelsen ned
+                // til 0px høyde (usynlig). Med minHeight på selve teksten
+                // (under) og scroll her i stedet for hard avkutting, blir
+                // resten av innholdet i det minste nåbart.
+                overflowY: 'auto',
               }}>
                 <h3 style={{
                   fontFamily: 'var(--font-hand)',
                   fontWeight: 400,
-                  fontSize: 'clamp(16px, 1.2vw, 20px)',
+                  fontSize: isMobile ? '24px' : 'clamp(16px, 1.2vw, 20px)',
                   color: 'var(--color-text)',
                   margin: 0,
                   lineHeight: 1.15,
@@ -274,11 +308,15 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
                 <p style={{
                   fontFamily: 'var(--font-ui)',
                   fontWeight: 300,
-                  fontSize: 'clamp(10px, 0.78vw, 12px)',
+                  fontSize: isMobile ? '16px' : 'clamp(10px, 0.78vw, 12px)',
                   color: 'var(--color-text-mid)',
                   margin: 0,
                   lineHeight: 1.5,
                   flex: 1,
+                  // Minstehøyde nok til ~3 linjer — uten denne kunne flex:1
+                  // presse avsnittet helt ned til 0px når resten av innholdet
+                  // (tittel/knapper/"tilbake") alene fylte hele kortet.
+                  minHeight: '4.5em',
                   overflow: 'hidden',
                   fontStyle: 'italic',
                   whiteSpace: 'pre-line',
@@ -288,7 +326,7 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
 
                 <div style={{
                   display: 'flex',
-                  gap: 6,
+                  gap: isMobile ? 10 : 6,
                   flexShrink: 0,
                   flexWrap: 'wrap',
                 }}>
@@ -297,7 +335,7 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
-                    style={linkStyle}
+                    style={isMobile ? { ...linkStyle, fontSize: '15px', padding: '7px 12px' } : linkStyle}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,1)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.32)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.7)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.18)' }}
                   >
@@ -308,7 +346,7 @@ export default function ProsjekterGrid({ prosjGap, prosjActive, prosjSpredt, vw,
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
-                    style={linkStyle}
+                    style={isMobile ? { ...linkStyle, fontSize: '15px', padding: '7px 12px' } : linkStyle}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,1)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.32)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.7)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.18)' }}
                   >

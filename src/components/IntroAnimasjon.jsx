@@ -163,12 +163,13 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
   const vh = win.h
   const isMobile   = vw < 600
   const isTablet   = !isMobile && vw < 1050
-  // Continuous frameInset: 36px at 375vw → 100px at 1440vw. På svært lave
-  // skjermer (bred-men-kort bærbar) tar rammemarginen for mye av den
-  // knappe høyden — trekk den sammen der, ellers blir det for lite plass
-  // igjen til innholdet.
-  const frameInsetByWidth = Math.max(36, Math.min(100, 36 + (vw - 375) * 64 / 1065))
-  const frameInset = Math.round(Math.max(24, Math.min(frameInsetByWidth, vh * 0.1)))
+  // Continuous frameInset: 18px at 375vw → 100px at 1440vw (samme
+  // sluttpunkt som før — kun mobil-enden er senket, ned fra opprinnelig
+  // 36px, se Layout.jsx). På svært lave skjermer (bred-men-kort bærbar)
+  // tar rammemarginen for mye av den knappe høyden — trekk den sammen
+  // der, ellers blir det for lite plass igjen til innholdet.
+  const frameInsetByWidth = Math.max(18, Math.min(100, 18 + (vw - 375) * 82 / 1065))
+  const frameInset = Math.round(Math.max(18, Math.min(frameInsetByWidth, vh * 0.1)))
 
   // ─── Scroll-indikator ────────────────────────────────────────────────────────
   const scrollHintOp = useTransform(scrollY, [0, 0.12 * vh], [1, 0])
@@ -243,17 +244,22 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
 
   const prosjGap = Math.round(Math.max(12, Math.min(20, vw * 0.015)))
 
-  // Mobile: 1-kolonne, samme bredde og sidemarger som prosjekter-kortene
+  // Mobile: 1-kolonne, samme bredde og sidemarger som prosjekter-kortene.
+  // Trekker fra litt ekstra (ikke bare prosjGap) — kortstabelen fylte hele
+  // rammebredden/-høyden kant-til-kant med null pusterom.
   const prosjContW_mobile = Math.min(vw - 2 * (frameInset + 1) - prosjGap * 2, 2 * 220 + prosjGap)
-  const mobileCardW = isMobile ? prosjContW_mobile : cardW
-  // Korthøyden ble kun regnet ut fra BREDDEN, uavhengig av skjermhøyden —
-  // på korte mobilskjermer (f.eks. iPhone SE) ble 4 stablede kort da høyere
-  // enn tilgjengelig plass og fløt utenfor rammen. Begrens høyden slik at
-  // stabelen alltid får plass innenfor rammen.
-  const widthDerivedFerdigH = Math.round((prosjContW_mobile - prosjGap) / 2 * 4 / 5)
-  const maxFerdigHByHeight  = Math.floor((vh - 2 * (frameInset + 1) - 3 * CARD_GAP) / 4)
-  const mobileCardH = isMobile ? Math.max(50, Math.min(widthDerivedFerdigH, maxFerdigHByHeight)) : cardH
-  const mobileGridH = isMobile ? 4 * mobileCardH + 3 * CARD_GAP : gridH
+  const mobileCardW = isMobile ? prosjContW_mobile - 14 : cardW
+  // Korthøyden ble tidligere regnet ut fra BREDDEN (en vilkårlig 4/5-faktor),
+  // uavhengig av hvor mye plass det faktiske tekstinnholdet (tittel/
+  // undertekst/beskrivelse/"les mer") trenger — på smale mobilskjermer ga
+  // det kort som knapt viste mer enn tittelen. Bruk i stedet all høyden
+  // rammen faktisk har å avse til 4 stablede kort, med en mindre gap enn
+  // 2×2-rutenettet på desktop (CARD_GAP) bruker. -36 gir litt luft over
+  // første og under siste kort, i stedet for å fylle rammen helt ut.
+  const MOBILE_FERDIG_GAP  = 10
+  const maxFerdigHByHeight = Math.floor((vh - 2 * (frameInset + 1) - 3 * MOBILE_FERDIG_GAP - 36) / 4)
+  const mobileCardH = isMobile ? Math.max(50, maxFerdigHByHeight) : cardH
+  const mobileGridH = isMobile ? 4 * mobileCardH + 3 * MOBILE_FERDIG_GAP : gridH
   const mobileGridL = isMobile ? frameInset + 1 + prosjGap : gridLeft
   const mobileGridT = isMobile ? Math.round(frameInset + 1 + (vh - 2 * (frameInset + 1) - mobileGridH) / 2) : gridTop
   // Aliaser: GL/GT/CW/CH/Hx/Hy — riktige verdier for både mobil og desktop
@@ -310,7 +316,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       : lerp(GL + Hx * fp, omRectRef.current.left, s))
   const p0T = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
-      ? lerp(GT + 1.5 * (CH + CARD_GAP) * fp, omRectRef.current.top, s)
+      ? lerp(GT + 1.5 * (CH + MOBILE_FERDIG_GAP) * fp, omRectRef.current.top, s)
       : lerp(GT + Hy * fp, omRectRef.current.top, s))
   const p1L = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
@@ -318,7 +324,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       : lerp(GL + CW + CARD_GAP - Hx * fp, omRectRef.current.left + omRectRef.current.width * 0.5, s))
   const p1T = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
-      ? lerp(GT + (1 + 0.5 * fp) * (CH + CARD_GAP), omRectRef.current.top + omRectRef.current.height * 0.25, s)
+      ? lerp(GT + (1 + 0.5 * fp) * (CH + MOBILE_FERDIG_GAP), omRectRef.current.top + omRectRef.current.height * 0.25, s)
       : lerp(GT + Hy * fp, omRectRef.current.top, s))
   const p2L = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
@@ -326,7 +332,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       : lerp(GL + Hx * fp, omRectRef.current.left, s))
   const p2T = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
-      ? lerp(GT + (2 - 0.5 * fp) * (CH + CARD_GAP), omRectRef.current.top + omRectRef.current.height * 0.5, s)
+      ? lerp(GT + (2 - 0.5 * fp) * (CH + MOBILE_FERDIG_GAP), omRectRef.current.top + omRectRef.current.height * 0.5, s)
       : lerp(GT + CH + CARD_GAP - Hy * fp, omRectRef.current.top + omRectRef.current.height * 0.5, s))
   const p3L = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
@@ -334,7 +340,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       : lerp(GL + CW + CARD_GAP - Hx * fp, omRectRef.current.left + omRectRef.current.width * 0.5, s))
   const p3T = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
-      ? lerp(GT + (3 - 1.5 * fp) * (CH + CARD_GAP), omRectRef.current.top + omRectRef.current.height * 0.75, s)
+      ? lerp(GT + (3 - 1.5 * fp) * (CH + MOBILE_FERDIG_GAP), omRectRef.current.top + omRectRef.current.height * 0.75, s)
       : lerp(GT + CH + CARD_GAP - Hy * fp, omRectRef.current.top + omRectRef.current.height * 0.5, s))
 
   // Størrelse: mobil → full bredde × 25 % høyde (strimel), desktop → halvpart × halvpart
@@ -582,7 +588,14 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
               overlay: "#162E42", overlayOpacity: 0.30, lightText: true,
             },
           ];
-          const pad = "clamp(18px,2.4vw,30px)";
+          // Mobil/nettbrett: kortene er mye kortere enn på desktop (mobil
+          // stables 4-i-én-kolonne, nettbrett har smalere omCardW), så den
+          // vanlige paddingen (16px ytre + clamp(18-30px) indre = ~68px
+          // totalt) spiste det meste av kortet og lot knapt plass til
+          // teksten. Strammere padding på begge.
+          const compact = isMobile || isTablet
+          const outerPad = compact ? 8 : "var(--space-4)";
+          const pad = compact ? "clamp(8px,2vw,14px)" : "clamp(18px,2.4vw,30px)";
           return cards.map(
             ({ L, T, rot, kol, backBg, omBg, omPos, overlay, overlayOpacity, lightText }, i) => (
               <motion.div
@@ -660,7 +673,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                         position: "absolute",
                         inset: 0,
                         display: "flex",
-                        padding: "var(--space-4)",
+                        padding: outerPad,
                       }}
                     >
                       <div
@@ -683,8 +696,11 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                         {i === 2 && <DesignImprint   hovered={hoveredCard === 2} />}
                         {i === 3 && <CoinImprint     hovered={hoveredCard === 3} />}
 
-                        {/* Øvre gruppe: tittel + underoverskrift + forklaring */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(6px,0.7vw,10px)", overflow: "hidden", minHeight: 0 }}>
+                        {/* Øvre gruppe: tittel + underoverskrift + forklaring.
+                            overflowY: auto er et sikkerhetsnett — hvis teksten
+                            likevel ikke får plass (svært lave kort), kan den
+                            scrolles i stedet for å bli usynlig avkuttet. */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(6px,0.7vw,10px)", overflowX: "hidden", overflowY: "auto", minHeight: 0 }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "clamp(4px,0.4vw,6px)" }}>
                             <h3
                               style={{
@@ -782,7 +798,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                       display: "flex",
-                      padding: "var(--space-4)",
+                      padding: outerPad,
                     }}
                   >
                     <div
@@ -819,7 +835,8 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                           lineHeight: 1.4,
                           margin: 0,
                           flex: 1,
-                          overflow: "hidden",
+                          overflowX: "hidden",
+                          overflowY: "auto",
                           minHeight: 0,
                         }}
                       >

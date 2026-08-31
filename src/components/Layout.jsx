@@ -103,12 +103,15 @@ export default function Layout() {
 
   const isMobile   = vp.w < 600
   const isTablet   = !isMobile && vp.w < 1050
-  // Continuous frameInset: 36px at 375vw → 100px at 1440vw. På svært lave
-  // skjermer (bred-men-kort bærbar) tar rammemarginen for mye av den
-  // knappe høyden — trekk den sammen der (se samme resonnement i
-  // IntroAnimasjon.jsx).
-  const fiByWidth = Math.max(36, Math.min(100, 36 + (vp.w - 375) * 64 / 1065))
-  const fi = Math.round(Math.max(24, Math.min(fiByWidth, vp.h * 0.1)))
+  // Continuous frameInset: 18px at 375vw → 100px at 1440vw (samme
+  // sluttpunkt som før — kun mobil-enden er senket, ned fra opprinnelig
+  // 36px). Ga mer plass å jobbe med i alle seksjoner på smale skjermer —
+  // bekreftet at hus-ikon/hamburger-meny fortsatt har komfortabel avstand
+  // til kanten ved 18px. På svært lave skjermer (bred-men-kort bærbar) tar
+  // rammemarginen for mye av den knappe høyden — trekk den sammen der (se
+  // samme resonnement i IntroAnimasjon.jsx).
+  const fiByWidth = Math.max(18, Math.min(100, 18 + (vp.w - 375) * 82 / 1065))
+  const fi = Math.round(Math.max(18, Math.min(fiByWidth, vp.h * 0.1)))
   const fr = vp.w - fi
   const fb = vp.h - fi
   const fontSize   = isMobile ? 15 : FONT_SIZE

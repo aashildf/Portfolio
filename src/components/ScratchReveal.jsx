@@ -71,7 +71,23 @@ export default function ScratchReveal({ topSrc, bottomSrc, alt, brushFraction = 
     const ctx = canvas.getContext('2d')
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.globalCompositeOperation = 'source-over'
-    ctx.drawImage(img, 0, 0, rect.width, rect.height)
+    // "object-fit: cover" for canvas — når containeren får en påtvunget
+    // høyde (se style.height under, brukt på mobil/nettbrett for å gi
+    // teksten nok plass) matcher ikke lenger rect sitt sideforhold bildets
+    // naturlige sideforhold. Å tegne rett til rect.width×rect.height ville
+    // da strukket/flatklemt strektegningen — beskjær kildebildet i stedet,
+    // akkurat som object-fit: cover gjør på <img> under.
+    const imgAspect  = img.naturalWidth / img.naturalHeight
+    const rectAspect = rect.width / rect.height
+    let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight
+    if (imgAspect > rectAspect) {
+      sw = img.naturalHeight * rectAspect
+      sx = (img.naturalWidth - sw) / 2
+    } else {
+      sh = img.naturalWidth / rectAspect
+      sy = (img.naturalHeight - sh) / 2
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, rect.width, rect.height)
   }, [brushFraction])
 
   useEffect(() => {
@@ -169,9 +185,28 @@ export default function ScratchReveal({ topSrc, bottomSrc, alt, brushFraction = 
     }
   }, [])
 
+  // Som standard får bunn-innholdet sin egen naturlige høyde (aspect-ratio-
+  // styrt). Hvis den som bruker komponenten eksplisitt gir en høyde via
+  // `style` (f.eks. for å begrense hvor mye plass det spiser på mobil),
+  // fyller det i stedet den høyden og beskjæres med object-fit: cover — å
+  // bare krympe bredden ville også gjort tekstkolonnen ved siden av smalere
+  // og dermed fått den til å bryte over flere linjer (motsatt effekt av
+  // det vi vil).
+  const hasExplicitHeight = style?.height != null
+  const isVideo = /\.(mp4|webm|mov)$/i.test(bottomSrc || '')
+  const bottomStyle = {
+    width: '100%',
+    height: hasExplicitHeight ? '100%' : 'auto',
+    objectFit: hasExplicitHeight ? 'cover' : undefined,
+    display: 'block',
+  }
   return (
     <div ref={containerRef} style={{ position: 'relative', ...style }}>
-      <img src={bottomSrc} alt={alt} style={{ width: '100%', height: 'auto', display: 'block' }} />
+      {isVideo ? (
+        <video src={bottomSrc} autoPlay loop muted playsInline style={bottomStyle} />
+      ) : (
+        <img src={bottomSrc} alt={alt} style={bottomStyle} />
+      )}
       <canvas
         ref={canvasRef}
         style={{

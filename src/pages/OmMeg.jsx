@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BASE } from '../utils/assetUrl'
 import { motion, useMotionValueEvent } from 'framer-motion'
 import drawingBlue from '../../assets/bilder/om_meg_bilder/blue_me_cutout.jpg'
+import aashildTak from '../../assets/video/ashild_tak_capcut2.mp4'
 import ScratchReveal from '../components/ScratchReveal'
 
 const HINT_TEXT = "skrap her"
@@ -63,6 +64,28 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
   const imgAspect    = 1380 / 1258
   const maxWByHeight = Math.floor((availCardH / imgAspect) * 2)
   const desktopCardW = Math.round(Math.min(860, Math.max(500, vw * 0.72), maxWByHeight))
+  // Nettbrett: kortet er smalere enn desktop, så bildets aspekt-styrte høyde
+  // (bredde/2 * aspekt) blir for lav til at all teksten får plass — den ble
+  // avkuttet/usynlig. Sett en minstehøyde for kortet på nettbrett-bredder,
+  // og la bildet beskjæres (object-fit: cover) for å fylle den i stedet for
+  // at teksten må presses inn i bildets naturlige høyde. 560 var opprinnelig
+  // satt for å bli kvitt scroll ved 768px bredde, men var langt over det
+  // teksten faktisk trenger (målt ~360-390px innhold gjennom hele
+  // nettbrett-spennet 600-1050px) — det ga et unødig høyt/smalt kort på
+  // bredere nettbrett. 440 gir god margin uten overdrevet tomrom.
+  const tabletMinCardH = 440
+  const desktopImgH    = Math.round((desktopCardW / 2) * imgAspect)
+  const desktopCardH   = isTablet ? Math.max(desktopImgH, tabletMinCardH) : desktopImgH
+
+  // Mobil: bildet stables OVER teksten (hele kortbredden, ikke halvparten),
+  // så det spiser mye mer av tilgjengelig høyde enn på desktop, og teksten
+  // under fikk ikke plass. Å smalne bildets BREDDE for å begrense høyden
+  // (slik desktop gjør) virker mot sin hensikt her — det gjør tekstkolonnen
+  // smalere også, som bryter teksten over enda flere linjer og gjør den enda
+  // høyere. Behold derfor full bredde, men beskjær bildet til en fast,
+  // begrenset høyde (~36% av tilgjengelig korthøyde) med object-fit: cover.
+  const mobileImgW   = Math.min(Math.round(vw * 0.85), 380)
+  const mobileImgCapH = Math.round(availCardH * 0.36)
 
   return (
     <motion.div
@@ -82,7 +105,12 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
       }}
     >
       <div style={{ position: "relative" }}>
-        {/* Skrap-hint — ligger utenfor/over kortet og peker ned mot bildets øvre venstre hjørne */}
+        {/* Skrap-hint. Desktop/nettbrett har rom over kortet, som originalt —
+            der er bakgrunnen lys, så mørk tekst. Mobil har ikke den plassen
+            (bildet fyller nesten hele rammen), så hintet ligger OPPÅ bildets
+            hjørne i stedet — der er bakgrunnen blå, så lys tekst i stedet,
+            med en svak skygge for lesbarhet mot det travle illustrasjons-
+            motivet under. */}
         {scratchHintVisible && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -90,8 +118,11 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
             transition={{ duration: 0.6, ease: "easeOut" }}
             style={{
               position: "absolute",
-              top: -58,
-              left: 4,
+              // Nok innrykk til å ikke havne bak den faste ramme-linja
+              // (tegnes i Layout.jsx ved x = frameInset, med høyere
+              // z-index enn innholdet her) på smale skjermer.
+              top: isMobile ? 10 : -58,
+              left: 26,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -103,11 +134,23 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
             <div style={{ position: "relative", display: "inline-block" }}>
               <span
                 style={{
+                  position: "relative",
+                  display: "inline-block",
                   fontFamily: "var(--font-hand)",
                   fontSize: "clamp(13px, 1.2vw, 18px)",
-                  color: "#274B66",
+                  color: isMobile ? "#fff" : "#274B66",
                   letterSpacing: "0.08em",
                   whiteSpace: "nowrap",
+                  // Lys tekst på "drop-shadow" alene var ikke pålitelig nok
+                  // lesbar mot det travle bilde-motivet på ekte enheter — en
+                  // faktisk bakgrunnsflate garanterer kontrast uavhengig av
+                  // hva som ligger bak, i stedet for å stole på filter-
+                  // rendring som kan variere mellom nettlesere.
+                  ...(isMobile && {
+                    background: "rgba(23,45,74,0.68)",
+                    borderRadius: 5,
+                    padding: "2px 7px",
+                  }),
                 }}
               >
                 {HINT_TEXT}
@@ -141,7 +184,7 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
                         y1={y1}
                         x2={x2}
                         y2={y2}
-                        stroke="rgba(55,90,160,0.55)"
+                        stroke={isMobile ? "rgba(255,255,255,0.8)" : "rgba(55,90,160,0.55)"}
                         strokeWidth="1.3"
                         strokeLinecap="round"
                         initial={{ pathLength: 0, opacity: 0 }}
@@ -168,7 +211,7 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
               <path
                 d="M 8,1 L 8,15 M 3,10 L 8,16 L 13,10"
                 fill="none"
-                stroke="rgba(55,90,160,0.7)"
+                stroke={isMobile ? "rgba(255,255,255,0.9)" : "rgba(55,90,160,0.7)"}
                 strokeWidth="1.6"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -184,9 +227,11 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
             flexDirection: isMobile ? "column" : "row",
             position: "relative",
             // Mobil: kortet stables i én kolonne, så bildet får HELE denne
-            // bredden (ikke halvparten som på desktop) — en 500px-bunngrense
-            // gir et altfor høyt bilde som flyter utenfor rammen/skjermen.
-            width: isMobile ? "min(85vw, 380px)" : desktopCardW,
+            // bredden (ikke halvparten som på desktop) — begrenset av
+            // mobileImgW (bredde OG høyde) slik at teksten under fortsatt
+            // får plass i rammen.
+            width: isMobile ? mobileImgW : desktopCardW,
+            height: isMobile ? undefined : desktopCardH,
             borderRadius: 0,
             overflow: "hidden",
             boxShadow: "var(--shadow-card)",
@@ -194,14 +239,15 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
             marginRight: isMobile ? 16 : isTablet ? 24 : 0,
           }}
         >
-          {/* Bilde-halvdel — skrapelodd-effekt avslører ommeg_bilde.jpg under */}
-          <div style={{ flex: "0 0 50%", pointerEvents: "auto" }}>
+          {/* Bilde-halvdel — skrapelodd-effekt avslører ashild_tak_capcut.mp4 under */}
+          <div style={{ flex: "0 0 50%", position: "relative", pointerEvents: "auto" }}>
             <ScratchReveal
               topSrc={drawingBlue}
-              bottomSrc={`${BASE}ommeg_bilde.jpg`}
+              bottomSrc={aashildTak}
               alt="Åshild Færøy"
               onScratchStart={() => { setScratchHintVisible(false); setHasScratched(true) }}
               triggerHint={showScratchDemo}
+              style={{ height: isMobile ? mobileImgCapH : desktopCardH }}
             />
           </div>
 
@@ -224,7 +270,11 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
             paddingTop: "clamp(10px, 2vw, 30px)",
             paddingBottom: "clamp(10px, 2vw, 30px)",
             gap: "clamp(10px, 1vw, 18px)",
-            overflow: "hidden",
+            overflowX: "hidden",
+            // Sikkerhetsnett: hvis teksten likevel blir høyere enn plassen
+            // bildet levner (uansett skjermstørrelse), skal den kunne
+            // scrolles i stedet for å bli usynlig avkuttet.
+            overflowY: isMobile ? "visible" : "auto",
             backgroundImage: `url(${BASE}watercolor-paper-texture.jpg)`,
             backgroundSize: "cover",
             backgroundPosition: "center",
