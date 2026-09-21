@@ -594,7 +594,7 @@ function VisittkortModal({ onClose }) {
 // ---------------------------------------------
 
 const KONTAKT_INFO = [
-  { label: 'faaas0825@gmail.com',    href: 'mailto:faaas0825@gmail.com',              Icon: MailIcon,     icon: '/mail_icon.jpg' },
+  { label: 'faas0825@gmail.com',    href: 'mailto:faaas0825@gmail.com',              Icon: MailIcon,     icon: '/mail_icon.jpg' },
   { label: '41 52 49 84',            href: null,                                       Icon: PhoneIcon,    icon: '/phone_icon.jpg' },
   { label: 'github.com/aashildf',    href: 'https://github.com/aashildf',             Icon: GithubIcon,   icon: '/githuc_icon.jpg' },
   { label: 'LinkedIn',               href: 'https://www.linkedin.com/in/%C3%A5shild-f%C3%A6r%C3%B8y-855595108/', Icon: LinkedInIcon, icon: '/linkedin_icon.jpg' },
