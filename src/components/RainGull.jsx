@@ -6,7 +6,7 @@ import { motion, animate, useMotionValue, useReducedMotion } from 'framer-motion
 // så linja blir med opp og strekkes som en strikk. Den gir opp, linja
 // spretter tilbake, og den sukker «pff».
 //
-// EASTER EGG: trykker man på måka, klorer den løs en bit av linja, river den
+// EASTER EGG: trykker man på måka (eller venter til tredje fluktforsøk), klorer den løs en bit av linja, river den
 // av, slår en ufrivillig salto og faller ned gjennom hullet (onFall) — og
 // siden følger etter ned til byggeplassen (ConstructionSite).
 //
@@ -183,6 +183,8 @@ export default function RainGull({ cx, lineY, x0, x1, size = 70, onFall }) {
       await sleep(2600, timers)
       let i = 0
       while (live()) {
+        // Tredje fluktforsøk uten at noen har trykket: nå river den seg løs selv
+        if (i === 4) { breakFree(); return }
         await (i % 2 === 0 ? attempt() : shake())
         if (!live()) return
         await waitOrPoke(i % 2 === 0 ? 4500 : 6500)
