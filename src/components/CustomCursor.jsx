@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BASE } from '../utils/assetUrl'
 
 const hasReactOnClick = (el) => {
@@ -26,7 +26,19 @@ const isNativeCursorZone = (el) => {
   return false
 }
 
+// Kun på enheter med ekte mus — mobil/nettbrett har ingen peker å erstatte,
+// og der ble skya bare hengende igjen der man sist trykket.
+const hasFinePointer = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches
+
 export default function CustomCursor() {
+  const [enabled] = useState(hasFinePointer)
+  if (!enabled) return null
+  return <CloudCursor />
+}
+
+function CloudCursor() {
   const ref    = useRef(null)
   const imgRef = useRef(null)
 

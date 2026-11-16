@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { BASE } from '../utils/assetUrl'
+import { createPortal } from 'react-dom'
 import { useMotionValue, useMotionValueEvent, motion, useScroll, useTransform, useSpring } from 'framer-motion'
 import { W, H } from '../constants'
 import Home              from '../pages/Home'
@@ -31,7 +32,10 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
     // ved mount), og scroll-snap treffer feil sted.
     const getPoints = () => {
       const vh = window.innerHeight
-      return [0, 1.00 * vh, 2.58 * vh, 3.35 * vh, 4.85 * vh]
+      const pts = [0, 1.00 * vh, 2.58 * vh, 3.35 * vh, 4.85 * vh]
+      // Easter egg (måka i Kontakt): byggeplassen under er åpnet
+      if (document.documentElement.dataset.sneak) pts.push(6 * vh)
+      return pts
     }
     const nearestIndex = (y, points) => {
       let best = 0
@@ -67,7 +71,11 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       const distance = target - start
       if (Math.abs(distance) < 1) { restY = target; return }
       animating = true
-      const duration = Math.min(700, Math.max(300, Math.abs(distance) * 0.4))
+      // Telefon: korte skjermer gir korte avstander og dermed svært raske
+      // overganger — zoomen inn i P-en (første 30 % av steget) rakk knapt
+      // å synes. Gi berøringsskjermer en litt lengre minstetid.
+      const minDur = isTouch ? 650 : 300
+      const duration = Math.min(Math.max(700, minDur), Math.max(minDur, Math.abs(distance) * 0.4))
       const startTime = performance.now()
 
       const step = (now) => {
@@ -90,8 +98,13 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
     // det er flere seksjoner unna — ellers "korrigerer" vi et Hjem→Kontakt-
     // klikk tilbake til bare ett steg).
     let userScrolling = false
+    const isTouch = window.matchMedia('(pointer: coarse)').matches
 
-    const onUserInput = () => {
+    const onUserInput = (e) => {
+      // Et TRYKK på hus-ikonet/menyen sender også touchstart — uten dette
+      // ble nav-hoppet tolket som en fingerscroll, og "ett steg om gangen"-
+      // regelen stoppet hoppet én seksjon unna i stedet for der man trykket.
+      if (e?.type === 'touchstart' && e.target?.closest?.('[data-nav]')) return
       userScrolling = true
       // Avbryter en pågående overgang UTEN å røre restY. restY skal bare
       // oppdateres når en bevegelse faktisk fullføres (se animateTo/step) —
@@ -176,7 +189,10 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
 
   // ─── P-animasjon (hjem-logo) ─────────────────────────────────────────────────
   const pWidth      = Math.min(vh * W / H, vw)
-  const scaleToFill = vw / pWidth
+  // Desktop: P-en er høyde-begrenset, så "fyll bredden" gir en tydelig zoom
+  // (~2,5×). Mobil: P-en er allerede bredde-begrenset → vw/pWidth = 1, og
+  // det ble ingen zoom i det hele tatt. Zoom like mye inn der også.
+  const scaleToFill = isMobile ? Math.max(2.6, vw / pWidth) : vw / pWidth
   const pScale      = useTransform(scrollY, [0, 0.30 * vh], [1, scaleToFill])
   const pOpacityRaw = useTransform(scrollY, [0.12 * vh, 0.38 * vh], [1, 0])
   const pOpacity    = useSpring(pOpacityRaw, { stiffness: 55, damping: 18 })
@@ -277,7 +293,28 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
   const [ferdigHoverActive,setFerdigHoverActive]= useState(false)
   const [flipped,          setFlipped]          = useState([false, false, false, false])
   const [hoveredCard,      setHoveredCard]      = useState(null)
+  // Mobil/nettbrett: et trykk på et ferdighetskort løfter det frem i stort
+  // format (i stedet for å snu det — baksideteksten fikk aldri plass i de
+  // små kortene). focus = { i, rect } holdes til lukke-animasjonen er ferdig;
+  // focusOpen styrer selve åpen/lukket-tilstanden.
+  const [focus,     setFocus]     = useState(null)
+  const [focusOpen, setFocusOpen] = useState(false)
+  const focusOpenRef = useRef(false)
+  const pendingFocusRef = useRef(null)
+  const focusSeqRef = useRef(0)
+  focusOpenRef.current = focusOpen
+  const closeFocus = () => setFocusOpen(false)
+  // Om brukeren har skrapt Om meg-bildet: da skal ikke tegningen dukke opp
+  // igjen i kortene når de deler seg (det så rart ut etter at man hadde
+  // avslørt videoen under).
+  const [omScratched, setOmScratched] = useState(false)
+  // P-en (med sine <a>-lenker) ligger under alle seksjonene og er bare
+  // usynlig (opacity 0) etter forsiden — uten dette fanget den trykk som
+  // traff "ved siden av" innholdet (f.eks. rundt Om meg-kortet) og navigerte
+  // til /prosjekt1 osv.
+  const [pClickable, setPClickable] = useState(() => window.scrollY < window.innerHeight * 0.1)
   useMotionValueEvent(scrollY, 'change', v => {
+    setPClickable(v < vh * 0.1)
     setProsjActive(v > vh * 3.0)
     setProsjSpredt(v > vh * 3.15)
     setKontaktActive(v > vh * 4.5)
@@ -286,6 +323,20 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       setFlipped([false, false, false, false])
     }
   })
+
+  // Lukk det fremhevede kortet så snart brukeren scroller videre
+  useEffect(() => {
+    if (!focusOpen) return
+    const y0 = window.scrollY
+    const onScroll = () => { if (Math.abs(window.scrollY - y0) > 8) closeFocus() }
+    const onKey = e => { if (e.key === 'Escape') closeFocus() }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [focusOpen])
 
   // Prosjekter: fade inn, hold, fade ut bak regnet (INGEN push-up).
   // Regn-skjulingen (prosjMask) følger paraplyens fjær-posisjon, som bruker
@@ -310,45 +361,52 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
   // s=1: Om Meg-opprinnelse, s=0: grid-posisjon, fp=1: haug-sentrum
   // Mobil: 1-kolonne nedover, Om Meg deles i 4 horisontale strimler
   // Desktop: 2×2 grid, Om Meg deles i 4 kvadranter
+  // Mobil: Om meg-kortet viser videoen (ikke tegningen), så å dele opp
+  // tegningen i strimler ga ingen mening — kortene står i sin egen kolonne
+  // hele tiden og toner bare inn (se cardOp), med en liten forskjøvet
+  // oppglidning (mobileRise) så de ikke bare "popper" inn.
   const p0L = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
-      ? lerp(GL, omRectRef.current.left, s)
+      ? GL
       : lerp(GL + Hx * fp, omRectRef.current.left, s))
-  const p0T = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
+  const mobileRise = useTransform(scrollY, [1.40 * vh, 2.10 * vh], [1, 0])
+  const riseOff = (r, i) => (isMobile ? r * (28 + i * 16) : 0)
+  const p0T = useTransform([splitSpring, ferdigPile, mobileRise], ([s, fp, r]) =>
     isMobile
-      ? lerp(GT + 1.5 * (CH + MOBILE_FERDIG_GAP) * fp, omRectRef.current.top, s)
+      ? GT + 1.5 * (CH + MOBILE_FERDIG_GAP) * fp + riseOff(r, 0)
       : lerp(GT + Hy * fp, omRectRef.current.top, s))
+  const p1T = useTransform([splitSpring, ferdigPile, mobileRise], ([s, fp, r]) =>
+    isMobile
+      ? GT + (1 + 0.5 * fp) * (CH + MOBILE_FERDIG_GAP) + riseOff(r, 1)
+      : lerp(GT + Hy * fp, omRectRef.current.top, s))
+  const p2T = useTransform([splitSpring, ferdigPile, mobileRise], ([s, fp, r]) =>
+    isMobile
+      ? GT + (2 - 0.5 * fp) * (CH + MOBILE_FERDIG_GAP) + riseOff(r, 2)
+      : lerp(GT + CH + CARD_GAP - Hy * fp, omRectRef.current.top + omRectRef.current.height * 0.5, s))
+  const p3T = useTransform([splitSpring, ferdigPile, mobileRise], ([s, fp, r]) =>
+    isMobile
+      ? GT + (3 - 1.5 * fp) * (CH + MOBILE_FERDIG_GAP) + riseOff(r, 3)
+      : lerp(GT + CH + CARD_GAP - Hy * fp, omRectRef.current.top + omRectRef.current.height * 0.5, s))
   const p1L = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
-      ? lerp(GL, omRectRef.current.left, s)
+      ? GL
       : lerp(GL + CW + CARD_GAP - Hx * fp, omRectRef.current.left + omRectRef.current.width * 0.5, s))
-  const p1T = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
-    isMobile
-      ? lerp(GT + (1 + 0.5 * fp) * (CH + MOBILE_FERDIG_GAP), omRectRef.current.top + omRectRef.current.height * 0.25, s)
-      : lerp(GT + Hy * fp, omRectRef.current.top, s))
   const p2L = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
-      ? lerp(GL, omRectRef.current.left, s)
+      ? GL
       : lerp(GL + Hx * fp, omRectRef.current.left, s))
-  const p2T = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
-    isMobile
-      ? lerp(GT + (2 - 0.5 * fp) * (CH + MOBILE_FERDIG_GAP), omRectRef.current.top + omRectRef.current.height * 0.5, s)
-      : lerp(GT + CH + CARD_GAP - Hy * fp, omRectRef.current.top + omRectRef.current.height * 0.5, s))
   const p3L = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
     isMobile
-      ? lerp(GL, omRectRef.current.left, s)
+      ? GL
       : lerp(GL + CW + CARD_GAP - Hx * fp, omRectRef.current.left + omRectRef.current.width * 0.5, s))
-  const p3T = useTransform([splitSpring, ferdigPile], ([s, fp]) =>
-    isMobile
-      ? lerp(GT + (3 - 1.5 * fp) * (CH + MOBILE_FERDIG_GAP), omRectRef.current.top + omRectRef.current.height * 0.75, s)
-      : lerp(GT + CH + CARD_GAP - Hy * fp, omRectRef.current.top + omRectRef.current.height * 0.5, s))
 
-  // Størrelse: mobil → full bredde × 25 % høyde (strimel), desktop → halvpart × halvpart
-  const cardWMV = useTransform(splitSpring, v => lerp(CW, omRectRef.current.width  * (isMobile ? 1   : 0.5), v))
-  const cardHMV = useTransform(splitSpring, v => lerp(CH, omRectRef.current.height * (isMobile ? 0.25 : 0.5), v))
+  // Størrelse: mobil → fast kortstørrelse, desktop → halvpart × halvpart av Om meg-kortet
+  const cardWMV = useTransform(splitSpring, v => isMobile ? CW : lerp(CW, omRectRef.current.width  * 0.5, v))
+  const cardHMV = useTransform(splitSpring, v => isMobile ? CH : lerp(CH, omRectRef.current.height * 0.5, v))
 
-  // Crossfade: splitSpring=1 → Om Meg-lag synlig, =0 → kortinnhold synlig
-  const invertedSplit = useTransform(splitSpring, v => 1 - v)
+  // Crossfade: splitSpring=1 → Om Meg-lag synlig, =0 → kortinnhold synlig.
+  // Mobil har ikke Om meg-laget, så der er forsiden alltid fullt synlig.
+  const invertedSplit = useTransform(splitSpring, v => isMobile ? 1 : 1 - v)
 
   const rot0 = useTransform(ferdigPile, [0, 1], [0, -7])
   const rot1 = useTransform(ferdigPile, [0, 1], [0,  5])
@@ -356,8 +414,12 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
   const rot3 = useTransform(ferdigPile, [0, 1], [0,  8])
 
   // Fader inn med Om Meg-overgangen, holder seg til pile-fasen er ferdig
+  // Mobil: ingen Om meg-bit å "bli" kortene, så tonen inn må være mykere.
   const cardOp = useTransform(scrollY,
-    [1.38*vh, 1.44*vh, 2.88*vh, 3.08*vh], [0, 1, 1, 0])
+    isMobile
+      ? [1.40*vh, 1.95*vh, 2.88*vh, 3.08*vh]
+      : [1.38*vh, 1.44*vh, 2.88*vh, 3.08*vh],
+    [0, 1, 1, 0])
 
   // ─── Paraply-overgang (prosjekter → kontakt) ─────────────────────────────────
   // SVG viewBox: 18196 × 14829 (aspect ≈ 1.227)
@@ -418,6 +480,11 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
 // Paraplyen stiger OPP etter at regnet har dekket prosjektene
   const umbrellaYRaw     = useTransform(scrollY, [3.90*vh, 4.45*vh], [vh * 1.05, umbrellaFinalY])
   const umbrellaY        = useSpring(umbrellaYRaw, { stiffness: 40, damping: 22 })
+  // Easter egg (måka): når siden glir forbi bunnen av scenen ned til
+  // byggeplassen, må de faste lagene i Kontakt bli med opp — ellers blir de
+  // hengende igjen oppå. 0 ellers (siden kan normalt ikke scrolles forbi 5·vh).
+  const fallShift        = useTransform(scrollY, v => -Math.max(0, v - 5 * window.innerHeight))
+  const umbrellaYShifted = useTransform([umbrellaY, fallShift], ([a, b]) => a + b)
   // Masken (umbrellaY) er fjær-basert og kan henge etter i opptil ~1,5-2s
   // etter et besøk på Kontakt (fjæra bruker reell tid på å falle tilbake
   // til hvileposisjon, uavhengig av hvor fort man scroller/klikker seg
@@ -449,28 +516,33 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
  
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ height: "600vh", position: "relative" }}>
+    // Alle høyder i px fra window.innerHeight, ikke CSS "vh": på mobil er
+    // 100vh høyden UTEN adressefelt, mens rammen (Layout.jsx) og alle
+    // posisjoner her regnes ut fra innerHeight (synlig høyde). Forskjellen
+    // (60-110px) dyttet alt som er plassert fra bunnen (f.eks. "skroll")
+    // ut under rammen.
+    <div style={{ height: 6 * vh, position: "relative" }}>
       {/* Scroll-ankere for nav + snap-punkter */}
       <div style={{ position: "absolute", top: 0, scrollSnapAlign: "start" }} />
       <div
         ref={omMegRef}
         data-id="om-meg"
-        style={{ position: "absolute", top: "100vh", scrollSnapAlign: "start" }}
+        style={{ position: "absolute", top: 1.00 * vh, scrollSnapAlign: "start" }}
       />
       <div
         ref={ferdigRef}
         data-id="ferdigheter"
-        style={{ position: "absolute", top: "258vh", scrollSnapAlign: "start" }}
+        style={{ position: "absolute", top: 2.58 * vh, scrollSnapAlign: "start" }}
       />
       <div
         ref={prosjRef}
         data-id="prosjekter"
-        style={{ position: "absolute", top: "335vh", scrollSnapAlign: "start" }}
+        style={{ position: "absolute", top: 3.35 * vh, scrollSnapAlign: "start" }}
       />
       <div
         ref={kontaktRef}
         data-id="kontakt"
-        style={{ position: "absolute", top: "485vh", scrollSnapAlign: "start" }}
+        style={{ position: "absolute", top: 4.85 * vh, scrollSnapAlign: "start" }}
       />
       <div
         ref={sectionRef}
@@ -478,7 +550,11 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
         style={{
           position: "sticky",
           top: 0,
-          height: "100vh",
+          height: vh,
+          // P-zoomen på mobil (2,6×) går langt utenfor skjermen — uten
+          // klipping ga det vannrett scroll på hele siden. "clip" (ikke
+          // "hidden") så det ikke lages en egen scroll-container.
+          overflow: "clip",
         }}
       >
         {/* bergen.jpg – lysnet, fader inn og holder seg */}
@@ -518,6 +594,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
             scale: pScale,
             opacity: pOpacity,
             zIndex: 2,
+            pointerEvents: pClickable ? "auto" : "none",
           }}
         >
           <Home />
@@ -532,6 +609,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
           cardRef={omMegCardRef}
           vw={vw}
           vh={vh}
+          onScratched={() => setOmScratched(true)}
         />
 
         {/* ─── Unified kort: Om Meg-lag + flip-animasjon foran/bak ───────────────── */}
@@ -595,16 +673,31 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
           // teksten. Strammere padding på begge.
           const compact = isMobile || isTablet
           const outerPad = compact ? 8 : "var(--space-4)";
-          const pad = compact ? "clamp(8px,2vw,14px)" : "clamp(18px,2.4vw,30px)";
-          return cards.map(
+          const pad = isMobile ? "10px 14px" : compact ? "clamp(8px,2vw,14px)" : "clamp(18px,2.4vw,30px)";
+          // Mobil: på lave telefoner er hvert kort bare ~130px høyt — da får
+          // ikke den kursive linja plass sammen med tittel og undertekst i
+          // lesbar størrelse. Den står uansett i det fremhevede kortet.
+          const showLead = !isMobile || CH >= 165
+          const openFocus = (i, el) => {
+            if (!ferdigHoverActive || !el) return
+            const r = el.getBoundingClientRect()
+            const next = { i, seq: ++focusSeqRef.current, rect: { left: r.left, top: r.top, width: r.width, height: r.height } }
+            // Forrige kort holder fortsatt på å lukke seg → vent til det er
+            // ferdig (onExitComplete), ellers kolliderer de to animasjonene.
+            if (focus) { pendingFocusRef.current = next; return }
+            setFocus(next)
+            setFocusOpen(true)
+          }
+          const cardEls = cards.map(
             ({ L, T, rot, kol, backBg, omBg, omPos, overlay, overlayOpacity, lightText }, i) => (
               <motion.div
                 key={i}
-                onClick={() =>
-                  ferdigHoverActive &&
-                  setFlipped((f) => f.map((v, j) => (j === i ? !v : v)))
-                }
-                onMouseEnter={() => ferdigHoverActive && setHoveredCard(i)}
+                onClick={(e) => {
+                  if (!ferdigHoverActive) return
+                  if (compact) openFocus(i, e.currentTarget)
+                  else setFlipped((f) => f.map((v, j) => (j === i ? !v : v)))
+                }}
+                onMouseEnter={() => ferdigHoverActive && !compact && setHoveredCard(i)}
                 onMouseLeave={() => setHoveredCard(null)}
                 style={{
                   position: "absolute",
@@ -619,20 +712,26 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                   boxShadow: "var(--shadow-card)",
                   cursor: ferdigHoverActive ? "pointer" : "default",
                   pointerEvents: ferdigHoverActive ? "auto" : "none",
+                  // Kortet "løftes ut" i det fremhevede formatet — skjul
+                  // originalen så det ikke ser ut som det finnes to.
+                  visibility: focus?.i === i ? "hidden" : "visible",
                 }}
               >
-                {/* Om Meg-lag */}
-                <motion.div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    overflow: "hidden",
-                    backgroundImage: isMobile ? `url(${drawingBlue})` : omBg,
-                    backgroundSize: isMobile ? "100% 400%" : "cover",
-                    backgroundPosition: isMobile ? `center ${(i / 3) * 100}%` : omPos,
-                    opacity: splitSpring,
-                  }}
-                />
+                {/* Om Meg-lag (tegningen deles i fire) — ikke på mobil, og
+                    ikke hvis brukeren allerede har skrapt den bort */}
+                {!isMobile && !omScratched && (
+                  <motion.div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      overflow: "hidden",
+                      backgroundImage: omBg,
+                      backgroundSize: "cover",
+                      backgroundPosition: omPos,
+                      opacity: splitSpring,
+                    }}
+                  />
+                )}
 
                 {/* Flip-container */}
                 <div
@@ -700,13 +799,13 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                             overflowY: auto er et sikkerhetsnett — hvis teksten
                             likevel ikke får plass (svært lave kort), kan den
                             scrolles i stedet for å bli usynlig avkuttet. */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(6px,0.7vw,10px)", overflowX: "hidden", overflowY: "auto", minHeight: 0 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(6px,0.7vw,10px)", overflowX: "hidden", overflowY: compact ? "hidden" : "auto", minHeight: 0 }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "clamp(4px,0.4vw,6px)" }}>
                             <h3
                               style={{
                                 fontFamily: "var(--font-hand)",
                                 fontWeight: 400,
-                                fontSize: "clamp(20px,1.8vw,26px)",
+                                fontSize: isMobile ? 26 : "clamp(20px,1.8vw,26px)",
                                 color: lightText ? "#ffffff" : "var(--color-text)",
                                 margin: 0,
                                 lineHeight: 1.2,
@@ -717,7 +816,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                             <p
                               style={{
                                 fontFamily: "var(--font-ui)",
-                                fontSize: "clamp(11px,0.85vw,13px)",
+                                fontSize: isMobile ? 14 : "clamp(11px,0.85vw,13px)",
                                 fontWeight: 400,
                                 color: lightText ? "rgba(255,255,255,0.72)" : "var(--color-text-mid)",
                                 letterSpacing: "0.04em",
@@ -728,19 +827,21 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                               {kol.innhold.split(", ").join(" · ")}
                             </p>
                           </div>
-                          <p
-                            style={{
-                              fontFamily: "var(--font-ui)",
-                              fontWeight: 300,
-                              fontSize: "clamp(13px,0.95vw,15px)",
-                              margin: 0,
-                              color: lightText ? "rgba(255,255,255,0.65)" : "var(--color-text-mid)",
-                              lineHeight: 1.55,
-                              fontStyle: "italic",
-                            }}
-                          >
-                            {KORT_FRONT[i].forklaring}
-                          </p>
+                          {showLead && (
+                            <p
+                              style={{
+                                fontFamily: "var(--font-ui)",
+                                fontWeight: 300,
+                                fontSize: isMobile ? 15 : "clamp(13px,0.95vw,15px)",
+                                margin: 0,
+                                color: lightText ? "rgba(255,255,255,0.75)" : "var(--color-text-mid)",
+                                lineHeight: isMobile ? 1.4 : 1.55,
+                                fontStyle: "italic",
+                              }}
+                            >
+                              {KORT_FRONT[i].forklaring}
+                            </p>
+                          )}
                         </div>
 
                         {/* "les mer →" — alltid forankret i bunnen */}
@@ -748,6 +849,9 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                           initial="rest"
                           whileHover="hover"
                           onClick={e => {
+                            // Mobil/nettbrett: la klikket gå videre til kortet
+                            // (som åpner det fremhevede formatet)
+                            if (compact) return
                             e.stopPropagation()
                             if (ferdigHoverActive)
                               setFlipped(f => f.map((v, j) => j === i ? !v : v))
@@ -759,7 +863,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
                             alignItems: "center",
                             gap: 4,
                             fontFamily: "var(--font-ui)",
-                            fontSize: "clamp(11px,0.8vw,13px)",
+                            fontSize: isMobile ? 13 : "clamp(11px,0.8vw,13px)",
                             letterSpacing: "0.04em",
                             cursor: "pointer",
                             transition: "color 0.2s ease",
@@ -886,6 +990,178 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
               </motion.div>
             ),
           );
+
+          // ── Fremhevet kort (mobil/nettbrett) ──────────────────────────────
+          // Vokser ut fra kortets egen plass til midten av skjermen, viser
+          // hele teksten og spiller animasjonen (som ellers bare startet ved
+          // hover — og det finnes ikke på berøringsskjerm). Trykk hvor som
+          // helst for å legge det tilbake.
+          const fc = focus ? cards[focus.i] : null
+          const fW = Math.min(vw - 2 * frameInset - 16, 460)
+          const fH = Math.min(vh - 2 * frameInset - 48, 500)
+          const fLeft = Math.round((vw - fW) / 2)
+          const fTop  = Math.round((vh - fH) / 2)
+          // Lukke-animasjonen er ferdig: rydd opp — eller åpne kortet brukeren
+          // trykket på MENS det forrige lukket seg (se pendingFocusRef).
+          const finishClose = () => {
+            setHoveredCard(null)
+            const next = pendingFocusRef.current
+            pendingFocusRef.current = null
+            if (next) { setFocus(next); setFocusOpen(true) }
+            else setFocus(null)
+          }
+          const rectPos = focus && { left: focus.rect.left, top: focus.rect.top, width: focus.rect.width, height: focus.rect.height }
+          // Ingen AnimatePresence/exit her med vilje: med den kolliderte
+          // utgangen av ett kort med inngangen av det neste (det nye ble
+          // stående uanimert). Kortet holdes montert og animeres mellom
+          // åpen/lukket; nytt kort = ny key (seq) → monteres friskt.
+          const focusEl = fc && createPortal(
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: focusOpen ? 1 : 0 }}
+                transition={{ duration: 0.3 }}
+                onClick={closeFocus}
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 100002,
+                  background: "rgba(245,242,236,0.55)",
+                  backdropFilter: "blur(3px)",
+                  WebkitBackdropFilter: "blur(3px)",
+                  // Under lukkingen: slipp trykk gjennom til neste kort
+                  pointerEvents: focusOpen ? "auto" : "none",
+                }}
+              />
+              <motion.div
+                key={`focus-card-${focus.seq}`}
+                initial={rectPos}
+                animate={focusOpen ? { left: fLeft, top: fTop, width: fW, height: fH } : rectPos}
+                transition={{ type: "spring", stiffness: 300, damping: 32, restDelta: 0.5 }}
+                // Åpnet: start animasjonen først når kortet har landet.
+                // Lukket: rydd opp. Ref, ikke state — closuren kan være utdatert.
+                onAnimationComplete={() => {
+                  if (focusOpenRef.current) setHoveredCard(focus.i)
+                  else finishClose()
+                }}
+                onClick={() => { setHoveredCard(null); closeFocus() }}
+                style={{
+                  pointerEvents: focusOpen ? "auto" : "none",
+                    position: "fixed",
+                    zIndex: 100003,
+                    overflow: "hidden",
+                    backgroundColor: fc.overlay,
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.18), 0 30px 60px rgba(0,0,0,0.14)",
+                    color: fc.lightText ? "rgba(255,255,255,0.88)" : "var(--color-text)",
+                  }}
+                >
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    backgroundImage: `url(${BASE}skillsoverlay.jpg)`,
+                    backgroundSize: "cover", backgroundPosition: "center",
+                    opacity: fc.overlayOpacity, pointerEvents: "none",
+                  }} />
+                  <div style={{ position: "absolute", inset: 0, padding: 10, display: "flex" }}>
+                    <div style={{
+                      flex: 1,
+                      position: "relative",
+                      overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
+                      border: `1px solid ${fc.lightText ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.22)"}`,
+                    }}>
+                      {/* Reven: over hele kortet, dempet litt (den ligger
+                          allerede nederst og fungerte fint slik). */}
+                      {focus.i === 2 && (
+                        <div style={{ position: "absolute", inset: 0, opacity: 0.7, pointerEvents: "none" }}>
+                          <DesignImprint hovered={hoveredCard === 2} />
+                        </div>
+                      )}
+                      {/* Fisken: IKKE inni en beholder med opacity < 1 — det
+                          isolerer mix-blend-mode: multiply, så GIF-ens hvite
+                          bakgrunn ble stående som en hvit firkant i stedet
+                          for å blandes inn i kortfargen. */}
+                      {focus.i === 3 && <CoinImprint hovered={hoveredCard === 3} />}
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: focusOpen ? 1 : 0 }}
+                        transition={{ duration: 0.25, delay: focusOpen ? 0.15 : 0 }}
+                        style={{
+                          position: "relative",
+                          flex: "0 1 auto",
+                          minHeight: 0,
+                          overflowY: "auto",
+                          padding: "22px 22px 16px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                        }}
+                      >
+                        <span style={{
+                          position: "absolute", top: 10, right: 14,
+                          fontFamily: "var(--font-ui)", fontSize: 22, lineHeight: 1,
+                          opacity: 0.6,
+                        }} aria-hidden>×</span>
+                        <h3 style={{
+                          fontFamily: "var(--font-hand)", fontWeight: 400,
+                          fontSize: 32, lineHeight: 1.1, margin: 0,
+                          color: fc.lightText ? "#fff" : "var(--color-text)",
+                          paddingRight: 24,
+                        }}>
+                          {fc.kol.tittel}
+                        </h3>
+                        <p style={{
+                          fontFamily: "var(--font-ui)", fontSize: 14, margin: 0,
+                          letterSpacing: "0.04em", lineHeight: 1.4,
+                          color: fc.lightText ? "rgba(255,255,255,0.75)" : "var(--color-text-mid)",
+                        }}>
+                          {fc.kol.innhold.split(/,\s*|\s·\s/).join(" · ")}
+                        </p>
+                        <p style={{
+                          fontFamily: "var(--font-ui)", fontWeight: 300, fontStyle: "italic",
+                          fontSize: 16, lineHeight: 1.45, margin: "4px 0 0",
+                          color: fc.lightText ? "rgba(255,255,255,0.8)" : "var(--color-text-mid)",
+                        }}>
+                          {KORT_FRONT[focus.i].forklaring}
+                        </p>
+                        <p style={{
+                          fontFamily: "var(--font-ui)", fontSize: 15.5, lineHeight: 1.55, margin: 0,
+                          color: fc.lightText ? "rgba(255,255,255,0.9)" : "var(--color-text)",
+                        }}>
+                          {fc.kol.forklaring}
+                        </p>
+                      </motion.div>
+                      {/* Scene UNDER teksten for ranken og skyen — over hele
+                          kortet la de seg oppå teksten / skyen havnet i
+                          kanten. Tar resten av høyden (minst 110px). */}
+                      {(focus.i === 0 || focus.i === 1) && (
+                        <div style={{ position: "relative", flex: "1 0 110px", pointerEvents: "none" }}>
+                          {focus.i === 0 && (
+                            <FrontendImprint
+                              hovered={hoveredCard === 0}
+                              style={{ width: "100%", height: "100%", opacity: 0.8 }}
+                            />
+                          )}
+                          {focus.i === 1 && (
+                            <ApiImprint
+                              hovered={hoveredCard === 1}
+                              style={{
+                                top: "4%", right: "auto", left: "50%",
+                                width: "auto", height: "88%",
+                                transform: "translateX(-50%)",
+                              }}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+            </>,
+            document.body
+          )
+
+          return <>{cardEls}{focusEl}</>;
         })()}
 
         {/* Prosjekter-fase: polaroid-grid */}
@@ -965,7 +1241,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
       </div>{" "}
       {/* /sticky */}
       {/* Regn-bakgrunn — fast, beveger seg ikke med paraplyen */}
-      {showUmbrella && <RainBackdrop opacity={umbrellaImgOp} />}
+      {showUmbrella && <RainBackdrop opacity={umbrellaImgOp} y={fallShift} />}
 
       {/* Paraply — beveger seg med umbrellaY */}
       <motion.div
@@ -975,7 +1251,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
           left: 0,
           right: 0,
           height: umbrellaH + 100,
-          y: umbrellaY,
+          y: umbrellaYShifted,
           scale: umbrellaEntryScale,
           transformOrigin: "center bottom",
           zIndex: 10000,
@@ -1013,6 +1289,7 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
         style={{
           position: "fixed",
           inset: 0,
+          y: fallShift,
           zIndex: 9999,
           opacity: kontaktInnholdOp,
           pointerEvents: kontaktActive ? "auto" : "none",
@@ -1030,7 +1307,9 @@ export default function IntroAnimasjon({ sectionRef, omMegRef, ferdigRef, prosjR
           isMobile={isMobile || !showUmbrella}
           frameInset={frameInset}
           vw={vw}
-          availH={kontaktAvailH}
+          // Uten paraply (mobil): plassen fra under seksjonnavnet ned til
+          // rammens bunnkant — kortbunken sentreres i den.
+          availH={showUmbrella ? kontaktAvailH : vh - (frameInset + 56) - frameInset - 16}
           visible={kontaktActive}
         />
       </motion.div>

@@ -26,14 +26,18 @@ const CONFETTI = [
   { emoji: '🎉', dx:  15, dy: -130, delay: 0.03 },
 ]
 
-const FONT_PX       = 8
-const LINE_H_PX     = FONT_PX * 1.5
+const FONT_PX       = 8   // desktop (kortet skaleres 2,1× → ~17px på skjermen)
 const MAX_LINES     = 3
-// +14 var for stramt på enheter uten Consolas installert (bl.a. iOS) — de
+// Terminalstørrelsene avhenger av skriftstørrelsen, som er større på mobil
+// (der kortet skaleres mye mindre opp, så 8px ble bitteliten på skjermen).
+// +22 var for stramt på enheter uten Consolas installert (bl.a. iOS) — de
 // faller tilbake på en annen monospace-font med litt annen linjehøyde enn
-// LINE_H_PX antar, og bunnlinja ble avkuttet av height+overflow:hidden.
-const TERM_H        = MAX_LINES * LINE_H_PX + 22
-const EXTRA_H       = TERM_H - 4
+// lineH antar, og bunnlinja ble avkuttet av height+overflow:hidden.
+const lineH  = (fontPx) => fontPx * 1.5
+// Mobil (større skrift) viser 4 linjer — hele teksten uten å rulle
+const linesFor = (fontPx) => (fontPx > FONT_PX ? 4 : MAX_LINES)
+const termH  = (fontPx) => linesFor(fontPx) * lineH(fontPx) + 22
+const extraH = (fontPx) => termH(fontPx) - 4
 const CURSOR_PRE_MS = 1300
 
 const CARD_DELAY = 0.55
@@ -42,7 +46,8 @@ const ZOOM_DELAY = 1.00
 const X_DELAY    = 2.10
 
 // ── VS Code-terminal typewriter ───────────────────────────
-function TerminalTyper({ onNewLine, onDone }) {
+function TerminalTyper({ onNewLine, onDone, fontPx = FONT_PX }) {
+  const LINE_H_PX = lineH(fontPx)
   const [lines,       setLines]       = useState(TERMINAL_LINES.map(() => ''))
   const [activeLine,  setActiveLine]  = useState(-1)
   const [scrollOffset,setScrollOffset]= useState(0)
@@ -63,7 +68,7 @@ function TerminalTyper({ onNewLine, onDone }) {
     TERMINAL_LINES.forEach((line, li) => {
       t += line.preDelay
       const vIdx      = line.appendToPrev ? visualIdx - 1 : visualIdx
-      const newOffset = Math.max(0, vIdx - (MAX_LINES - 1)) * LINE_H_PX
+      const newOffset = Math.max(0, vIdx - (linesFor(fontPx) - 1)) * LINE_H_PX
 
       timeouts.push(setTimeout(() => {
         setActiveLine(li)
@@ -129,11 +134,11 @@ function TerminalTyper({ onNewLine, onDone }) {
       margin: '6px -16px -36px',
       background: '#1e1e1e',
       borderTop: '1px solid #3c3c3c',
-      height: TERM_H,
+      height: termH(fontPx),
       overflow: 'hidden',
       fontFamily: "Consolas, 'Courier New', monospace",
-      fontSize: FONT_PX,
-      lineHeight: LINE_H_PX / FONT_PX,
+      fontSize: fontPx,
+      lineHeight: LINE_H_PX / fontPx,
       padding: '5px 10px',
       boxSizing: 'border-box',
     }}>
@@ -223,6 +228,17 @@ export default function PortfolioEasterEgg({
 
   const vw = window.innerWidth
   const vh = window.innerHeight
+  // Fast 2,1× var laget for desktop-kort (~260px). På mobil er kortet ~320px
+  // bredt allerede, så 2,1× ble over dobbelt så bredt som skjermen og man
+  // så bare en liten bit av animasjonen. Begrens til det som får plass.
+  const fitScale = (font) => cardRect
+    ? Math.min(SCALE, (vw * 0.92) / cardRect.width, (vh * 0.86) / (cardRect.height + extraH(font)))
+    : SCALE
+  // Terminalskrift: sikt mot ~11px på skjermen når kortet ikke kan skaleres
+  // mye opp (mobil). Taket på 10px er det den lengste linja ("good enough,
+  // for now.... deploying. < ENJOY!") tåler før den kuttes i kortbredden.
+  const termFont = Math.max(FONT_PX, Math.min(10, 11 / fitScale(FONT_PX)))
+  const scale    = fitScale(termFont)
 
   return (
     <>
@@ -254,9 +270,9 @@ export default function PortfolioEasterEgg({
         <motion.div
           initial={{ x: cardRect.left, y: cardRect.top, scale: 1 }}
           animate={{
-            x: vw / 2 - (cardRect.width * SCALE) / 2,
-            y: vh / 2 - ((cardRect.height + EXTRA_H) * SCALE) / 2,
-            scale: SCALE,
+            x: vw / 2 - (cardRect.width * scale) / 2,
+            y: vh / 2 - ((cardRect.height + extraH(termFont)) * scale) / 2,
+            scale,
           }}
           transition={{ duration: CARD_DUR, delay: CARD_DELAY, ease: [0, 0, 0.2, 1] }}
           style={{
@@ -310,7 +326,7 @@ export default function PortfolioEasterEgg({
           </div>
 
           {/* Terminal */}
-          <TerminalTyper onNewLine={handleNewLine} onDone={() => setConfetti(true)} />
+          <TerminalTyper fontPx={termFont} onNewLine={handleNewLine} onDone={() => setConfetti(true)} />
 
           {/* Konfetti */}
           {showConfetti && CONFETTI.map((c, i) => (

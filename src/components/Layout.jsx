@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { useScroll, useMotionValueEvent, AnimatePresence, motion } from 'framer-motion'
+import { useScroll, useMotionValueEvent, useTransform, AnimatePresence, motion } from 'framer-motion'
 import {
   W, H, BUNN, BUNN_W,
   GAP,
   TEXT_PAD, WORD_GAP, CORNER_LEAD, FONT_SIZE,
 } from '../constants'
 import IntroAnimasjon from './IntroAnimasjon'
+import RainGull from './RainGull'
+import ConstructionSite from './ConstructionSite'
 import { BASE } from '../utils/assetUrl'
 import hjemIkon from '../../assets/bilder/prosjektbilder/bergenshus_hjemikon.png'
 
@@ -90,6 +92,51 @@ export default function Layout() {
     else                    setActive('hjem')
   })
 
+  // ── Easter egg: måka river hull i bunnlinja og faller ned til byggeplassen ──
+  const [egg, setEgg] = useState(false)
+  const [gullKey, setGullKey] = useState(0)
+  const eggArmed = useRef(false)
+  const scrollAnim = useRef(null)
+
+  // Egen, rolig scroll (ikke nettleserens smooth) så vi styrer tempoet
+  const glideTo = (target, duration) => {
+    cancelAnimationFrame(scrollAnim.current)
+    const start = window.scrollY, dist = target - start, t0 = performance.now()
+    const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+    const step = now => {
+      const t = Math.min(1, (now - t0) / duration)
+      window.scrollTo({ top: start + dist * ease(t), behavior: 'instant' })
+      if (t < 1) scrollAnim.current = requestAnimationFrame(step)
+    }
+    scrollAnim.current = requestAnimationFrame(step)
+  }
+
+  const onGullFall = () => {
+    // Snap-logikken (IntroAnimasjon) får et ekstra stoppunkt nederst
+    document.documentElement.dataset.sneak = '1'
+    setEgg(true)
+    setTimeout(() => glideTo(6 * window.innerHeight, 1500), 380)
+  }
+  const climbBack = () => glideTo(4.85 * window.innerHeight, 1100)
+
+  // Tilbake på Kontakt → lukk byggeplassen og la en ny, våt måke tegne seg
+  useMotionValueEvent(scrollY, 'change', v => {
+    if (!egg) return
+    const vh = window.innerHeight
+    if (v > 5.5 * vh) eggArmed.current = true
+    if (eggArmed.current && v < 4.95 * vh) {
+      eggArmed.current = false
+      delete document.documentElement.dataset.sneak
+      setEgg(false)
+      setGullKey(k => k + 1)
+    }
+  })
+  useEffect(() => () => { delete document.documentElement.dataset.sneak }, [])
+
+  // Rammen henger fast i vinduet — men når vi «faller» forbi bunnen av
+  // scenen, skal den bli med opp, som om kameraet følger etter ned
+  const frameShift = useTransform(scrollY, v => -Math.max(0, v - 5 * window.innerHeight))
+
   const scrollToRef = ref => {
     ref.current?.scrollIntoView({ behavior: 'instant' })
     jumpHomeRef.current?.()
@@ -134,9 +181,16 @@ export default function Layout() {
 
   const bunnLc = Math.max(fi, bunnL)
   const bunnRc = Math.min(fr, bunnR)
+  // Regnvåt måke på bunnlinja i Kontakt — den eier biten gullX0…fr av linja
+  const gullSize = isMobile ? 46 : 70
+  const gullCx = Math.round(fr - 37 * gullSize / 70 - (isMobile ? 12 : 44))
+  const gullX0 = Math.round(Math.max(fi + 20, gullCx - 2.4 * (fr - gullCx)))
+  const showGull = active === 'kontakt'
   const bottomLine = !isMobile && active === 'hjem' && showGap && bunnLc < bunnRc
     ? `M ${fr} ${fb} H ${bunnRc} M ${bunnLc} ${fb} H ${fi}`
-    : `M ${fr} ${fb} H ${fi}`
+    : showGull
+      ? `M ${gullX0} ${fb} H ${fi}`
+      : `M ${fr} ${fb} H ${fi}`
 
   // Mobil: dynamisk gap basert på målt seksjonnavn-bredde
   const mobileGapEnd = hjemX + HOUSE_W + TEXT_PAD + SEPT_LINE + sectionLblW + TEXT_PAD
@@ -190,7 +244,21 @@ export default function Layout() {
         jumpHomeRef={jumpHomeRef}
       />
 
+      {egg && (
+        <ConstructionSite
+          vw={vp.w}
+          vh={vp.h}
+          fi={fi}
+          holeL={gullCx - 9 * gullSize / 70}
+          holeR={gullCx + 10 * gullSize / 70}
+          gullCx={gullCx}
+          gullSize={gullSize}
+          onBack={climbBack}
+        />
+      )}
+
       {/* Seksjonnavn på linjen — mobil/nettbrett, i linje med rammen (skjult på hjem) */}
+      <motion.div style={{ position: 'fixed', inset: 0, y: frameShift, zIndex: 10000, pointerEvents: 'none' }}>
       {(isMobile || isTablet) && active !== 'hjem' && (
         <AnimatePresence mode="wait">
           <motion.div
@@ -220,6 +288,7 @@ export default function Layout() {
           </motion.div>
         </AnimatePresence>
       )}
+      </motion.div>
 
       {/* Fast ramme + nav */}
       <style>{`
@@ -229,8 +298,9 @@ export default function Layout() {
         .menu-item:hover { font-weight: 600; }
         .menu-item--active { font-weight: 600; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: rgba(0,0,0,0.4); text-decoration-thickness: 1px; }
       `}</style>
-      <svg
+      <motion.svg
         style={{
+          y: frameShift,
           position: "fixed",
           inset: 0,
           width: "100%",
@@ -242,6 +312,11 @@ export default function Layout() {
       >
         <path d={mainFrameLines} fill="none" stroke="black" strokeWidth="1" />
 
+        {/* Regnvåt måke som prøver å fly av gårde med bunnlinja (Kontakt) */}
+        {showGull && (
+          <RainGull key={gullKey} cx={gullCx} lineY={fb} x0={gullX0} x1={fr} size={gullSize} onFall={onGullFall} />
+        )}
+
         {/* Usynlig tekst for å måle seksjonnavn-bredde */}
         <text ref={sectionLblRef} x={-9999} y={-9999} {...{ dominantBaseline:'middle', fontFamily:"'Caveat', cursive", fontSize }} style={{ visibility:'hidden', pointerEvents:'none' }}>
           {{ hjem:'Hjem', omMeg:'Om meg', ferdigheter:'Ferdigheter', prosjekter:'Prosjekter', kontakt:'Kontakt' }[active]}
@@ -249,6 +324,7 @@ export default function Layout() {
 
         {/* Hjem-ikon */}
         <g
+          data-nav=""
           onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); jumpHomeRef.current?.() }}
           {...navHover("hjem")}
           style={{ pointerEvents: "auto", cursor: "pointer", opacity: hoveredNav === "hjem" || active === "hjem" ? 1 : 0.72 }}
@@ -309,6 +385,7 @@ export default function Layout() {
 
         {(isMobile || isTablet) && (
           <g
+            data-nav=""
             onClick={clickBurger}
             onMouseEnter={openHover}
             onMouseLeave={leaveHover}
@@ -355,11 +432,12 @@ export default function Layout() {
             )}
           </g>
         )}
-      </svg>
+      </motion.svg>
 
       {(isMobile || isTablet) && menuOpen && (
         <>
           <div
+            data-nav=""
             onClick={closeClick}
             style={{
               position: "fixed",
@@ -368,6 +446,7 @@ export default function Layout() {
             }}
           />
           <div
+            data-nav=""
             onMouseEnter={enterMenu}
             onMouseLeave={leaveMenu}
             style={{

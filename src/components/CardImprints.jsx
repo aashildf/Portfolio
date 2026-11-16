@@ -63,7 +63,9 @@ const TRANSFORMED_PATHS = [
   // Legger til de andre transformerte gruppene også...
 ];
 
-export function FrontendImprint({ hovered }) {
+// style: valgfri overstyring av plassering/størrelse (brukes i det
+// fremhevede kortet på mobil, der animasjonen får en egen flate under teksten)
+export function FrontendImprint({ hovered, style }) {
   return (
     <div style={{
       position: "absolute",
@@ -73,6 +75,7 @@ export function FrontendImprint({ hovered }) {
       height: "80%",
       pointerEvents: "none",
       overflow: "visible",
+      ...style,
     }}>
       <svg
         viewBox="0 0 400 420"
@@ -131,7 +134,7 @@ const RAIN = [
   { x: 69, delay: 0.15 }, { x: 35, delay: 0.58 }, { x: 62, delay: 0.42 },
 ]
 
-export function ApiImprint({ hovered }) {
+export function ApiImprint({ hovered, style }) {
   return (
     <div style={{
       position: "absolute",
@@ -142,6 +145,7 @@ export function ApiImprint({ hovered }) {
       pointerEvents: "none",
       opacity: hovered ? 1 : 0.08,
       transition: "opacity 0.5s ease",
+      ...style,
     }}>
       <svg viewBox="0 0 100 130" style={{ width: "100%", height: "100%", overflow: "visible" }}>
         <style>{`

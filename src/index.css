@@ -1,8 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Caveat&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;700;900&family=Lemonada:wght@300;400;700&family=Hammersmith+One&family=Lilita+One&display=swap');
 @import './tokens.css';
 
-* { box-sizing: border-box; margin: 0; padding: 0; cursor: none !important; }
-.native-cursor, .native-cursor * { cursor: default !important; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Sky-pekeren (CustomCursor) erstatter systempekeren — men bare på enheter
+   med ekte mus. Mobil/nettbrett har ingen peker, og der skal heller ikke
+   noe skjules. */
+@media (hover: hover) and (pointer: fine) {
+  * { cursor: none !important; }
+  .native-cursor, .native-cursor * { cursor: default !important; }
+}
 .kontakt-rad { border-radius: 3px; transition: background 0.15s ease, color 0.15s ease; }
 .kontakt-rad:hover { background: rgba(160, 120, 70, 0.13) !important; }
 .kontakt-rad:hover span {
@@ -38,7 +44,7 @@ body { background: var(--color-bg); }
 @media (max-width: 599px) {
   .p-svg {
     /* Keep P within frame inset (36px each side) on mobile */
-    width: min(calc(100vh * 287 / 403), calc(100vw - 72px));
+    width: min(calc(100vh * 287 / 403), calc(100vw - 56px));
   }
 }
 

@@ -3,7 +3,9 @@ import { useRef, useEffect, useCallback } from 'react'
 // Skrapelodd-effekt: toppbildet males på et canvas oppå bunnbildet, og
 // "viskes" bort (destination-out) langs musepekeren/fingeren for å
 // avsløre bildet under.
-export default function ScratchReveal({ topSrc, bottomSrc, alt, brushFraction = 0.14, style, onScratchStart, triggerHint }) {
+// disabled: vis bare bunn-innholdet (ingen skrapelag) — brukt på mobil.
+// objectPosition: hvilken del som beholdes når bunn-innholdet beskjæres.
+export default function ScratchReveal({ topSrc, bottomSrc, alt, brushFraction = 0.14, style, onScratchStart, triggerHint, disabled = false, objectPosition }) {
   const containerRef   = useRef(null)
   const canvasRef      = useRef(null)
   const topImgRef      = useRef(null)
@@ -198,7 +200,19 @@ export default function ScratchReveal({ topSrc, bottomSrc, alt, brushFraction = 
     width: '100%',
     height: hasExplicitHeight ? '100%' : 'auto',
     objectFit: hasExplicitHeight ? 'cover' : undefined,
+    objectPosition,
     display: 'block',
+  }
+  if (disabled) {
+    return (
+      <div ref={containerRef} style={{ position: 'relative', ...style }}>
+        {isVideo ? (
+          <video src={bottomSrc} autoPlay loop muted playsInline style={bottomStyle} />
+        ) : (
+          <img src={bottomSrc} alt={alt} style={bottomStyle} />
+        )}
+      </div>
+    )
   }
   return (
     <div ref={containerRef} style={{ position: 'relative', ...style }}>

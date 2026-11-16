@@ -112,10 +112,12 @@ const RAIN_CSS = `
 `
 
 /** Fixed rain backdrop — does NOT move with the umbrella */
-export function RainBackdrop({ opacity }) {
+export function RainBackdrop({ opacity, y }) {
   return (
     <motion.div style={{
       position: "fixed", inset: 0,
+      y,
+      overflow: "hidden",
       zIndex: 9997,
       pointerEvents: "none",
       opacity,

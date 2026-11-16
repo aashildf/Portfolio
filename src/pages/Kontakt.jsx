@@ -671,21 +671,41 @@ export function KontaktInnhold({ isMobile, vw = 1440, availH = 500 }) {
 
   if (isMobile) {
     const INK = "rgba(18, 12, 4, 0.92)"
-    const MOB_W = "min(260px, 82vw)"
-    // Koppekortet overlapper videokortet i stedet for å legge til høyde
-    // nedover. En fast overlapp holdt ikke på korte skjermer (der er det
-    // langt mindre plass å avse) — skaler den med availH, slik at det alltid
-    // ender innenfor rammen i stedet for at man trenger scroll.
-    const cupOverlap = Math.round(Math.max(70, Math.min(280, 760 - availH)))
+    // Mobil: de tre kortene ligger som en løs bunke bilder på et bord, ikke
+    // stablet rett under hverandre på midten (der dekket koppekortet hele
+    // videokortet, og det ble mye tomrom nederst på høye skjermer):
+    //   • kontaktkortet øverst, litt skrått
+    //   • videokortet mindre, forskjøvet mot høyre, overlapper litt
+    //   • koppekortet nede til venstre, dekker bare et hjørne av videokortet
+    // Alle mål avledes av kontaktkortets bredde W, og W begrenses av høyden
+    // som er tilgjengelig (availH) så bunken alltid får plass i rammen.
+    // Omtrentlige høyder (padding + 5/4-fotoflate + etikett):
+    //   kontakt ≈ 0.8W + 34, video ≈ 0.59W + 34, kopp ≈ 0.61W + 49
+    //   → total ≈ 1.71W + 78
+    const W        = Math.round(Math.min(260, vw * 0.78, (availH - 88) / 1.71))
+    const contactH = 0.8 * W + 34
+    const videoW   = Math.round(W * 0.74)
+    const videoH   = 0.8 * (videoW - 32) + 60
+    const cupW     = Math.round(W * 0.56)
+    const videoTop = Math.round(contactH - 22)
+    const cupTop   = Math.round(videoTop + videoH * 0.5)
+    const totalH   = Math.round(cupTop + 1.093 * (cupW - 24) + 75)
+    const MOB_W    = W
+    // Hele piksler: sentrering med flex ga en halv piksels forskyvning når
+    // differansen var et oddetall — det gjør rotert tekst ekstra uskarp
+    // (særlig i Safari). Regn ut forskyvningene selv og rund dem av, og gi
+    // bunken en bredde med samme paritet som skjermbredden, så den ytre
+    // (flex-)sentreringen også lander på en hel piksel.
+    const padTop = Math.max(0, Math.round((availH - totalH) / 2))
+    const boxW   = W + ((vw - W) % 2 === 0 ? 0 : 1)
     return (
-      <div style={{
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 20,
-        padding: "0 16px", transform: "translateY(-16px)",
-      }}>
+      <div style={{ height: availH, paddingTop: padTop, boxSizing: "border-box" }}>
+      <div style={{ position: "relative", width: boxW, height: totalH }}>
 
         {/* Mobil kontaktkort */}
         <div className="pcrd pcrd-instax native-cursor"
-          style={{ ...kortBase, padding: "20px 20px 46px", width: MOB_W }}
+          style={{ ...kortBase, position: "absolute", top: 0, left: -8,
+            padding: "20px 20px 46px", width: MOB_W, transform: "rotate(-1.5deg)", zIndex: 1 }}
         >
           <div style={{ position: "relative", aspectRatio: "5/4", overflow: "hidden", background: "#f7f4ef" }}>
             <img
@@ -699,10 +719,12 @@ export function KontaktInnhold({ isMobile, vw = 1440, availH = 500 }) {
                 objectFit: "cover",
               }}
             />
+            {/* Samme bilde og sideforhold (5/4) som på desktop → samme
+                plassering over koppen (stod midt på bildet før). */}
             <WarmSteam style={{
               position: "absolute",
-              left: "50%",
-              bottom: "28%",
+              left: "83%",
+              bottom: "32%",
               transform: "translateX(-50%)",
               zIndex: 2,
             }} />
@@ -713,12 +735,12 @@ export function KontaktInnhold({ isMobile, vw = 1440, availH = 500 }) {
               pointerEvents: "none",
             }} />
             <div style={{ position: "absolute", inset: 0, zIndex: 1, display: "flex", flexDirection: "column",
-              justifyContent: "flex-start", padding: "16px 18px", gap: 6 }}>
+              justifyContent: "flex-start", padding: "16px 16px", gap: W >= 240 ? 8 : 5 }}>
               {KONTAKT_INFO.map(({ label, href, Icon }) => {
                 const inner = (
                   <div className="kontakt-rad native-cursor" style={{ display: "flex", alignItems: "center", gap: 7, padding: "1px 4px" }}>
-                    <Icon size={12} color={INK} />
-                    <span style={{ fontFamily: "var(--font-hand)", fontSize: 13, color: INK,
+                    <Icon size={W >= 240 ? 14 : 13} color={INK} />
+                    <span style={{ fontFamily: "var(--font-hand)", fontSize: W >= 240 ? 16 : 14, color: INK,
                       fontWeight: 400, letterSpacing: "0.02em", lineHeight: 1.2 }}>{label}</span>
                   </div>
                 )
@@ -734,23 +756,30 @@ export function KontaktInnhold({ isMobile, vw = 1440, availH = 500 }) {
           </div>
         </div>
 
-        {/* Mobil videokort — samme bredde som kontaktkortet */}
-        <div className="pcrd pcrd-instax" style={{ ...kortBase, padding: "20px", width: MOB_W }}>
+        {/* Mobil videokort — mindre, forskjøvet mot høyre, oppå kontaktkortets nedre kant */}
+        <div className="pcrd pcrd-instax" style={{ ...kortBase, position: "absolute",
+          top: videoTop, right: -14, padding: "16px 16px 12px", width: videoW,
+          // IKKE rotert: kortet inneholder en <video>, og i Safari legges
+          // et rotert element med video i sitt eget lag som roteres som et
+          // bilde — da blir navnet under uskarpt. (Som opprinnelig.)
+          zIndex: 2 }}>
           <div style={{ aspectRatio: "5/4", overflow: "hidden", position: "relative", outline: "1px solid #D9D8D3" }}>
             <SlowVideo style={{ position: "absolute", inset: 0, width: "100%", height: "100%",
               objectFit: "cover", display: "block",
               transform: "scale(1.58) translateY(11%)", transformOrigin: "center center" }} />
           </div>
-          <div style={{ ...etikett, paddingTop: 10 }}>Åshild Færøy</div>
+          <div style={{ ...etikett, paddingTop: 10, fontSize: 18, color: INK }}>Åshild Færøy</div>
         </div>
 
-        {/* Mobil koppekort — liten, overlapper videokortet over med vilje
-            (som et bilde kastet oppå bunken) i stedet for å legge til
-            høyde nedover — det var det som trengte scroll i rammen før. */}
+        {/* Mobil koppekort — nede til venstre, oppå videokortets nedre
+            venstre hjørne (som et bilde kastet oppå bunken) */}
         <a
           href={MAIL_HREF}
           className="pcrd pcrd-instax"
-          style={{ ...kortBase, padding: "14px 14px 14px", width: "min(148px, 40vw)", textDecoration: "none", transform: "rotate(2deg)", marginTop: -cupOverlap, position: "relative", zIndex: 2 }}
+          style={{ ...kortBase, position: "absolute", top: cupTop, left: -14,
+            padding: "12px 12px 12px", width: cupW, textDecoration: "none",
+            // Samme vinkel som opprinnelig (var skarp der)
+            transform: "rotate(2deg)", zIndex: 3 }}
         >
           <div style={{ position: "relative" }}>
             <div style={{ position: "absolute", bottom: "100%", left: 0, right: 0, display: "flex",
@@ -764,13 +793,16 @@ export function KontaktInnhold({ isMobile, vw = 1440, availH = 500 }) {
           </div>
           <div style={{ display: "flex", flexDirection: "row", alignItems: "center",
             justifyContent: "center", paddingTop: 10, gap: 10 }}>
-            <div style={{ fontFamily: "var(--font-hand)", fontWeight: 400, fontSize: 15,
-              color: "var(--color-text)", textAlign: "left", lineHeight: 1.35 }}>
+            {/* Samme blekk som infokortet: #333 i tynn håndskrift så mykere ut */}
+            <div style={{ fontFamily: "var(--font-hand)", fontWeight: 400, fontSize: cupW < 140 ? 14 : 16,
+              color: INK, textAlign: "left", lineHeight: 1.3, whiteSpace: "nowrap" }}>
               Ta gjerne kontakt<br />for en prat!
             </div>
-            <TinySmile />
+            {/* Smale skjermer: ikke plass til smilefjeset ved siden av teksten */}
+            {cupW >= 140 && <TinySmile />}
           </div>
         </a>
+      </div>
       </div>
     )
   }

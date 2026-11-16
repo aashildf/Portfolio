@@ -14,13 +14,16 @@ const RAY_STAGGER_S = 0.45
 const RAY_DURATION_S = 0.3
 const RAYS_TOTAL_MS = ((RAY_ANGLES.length - 1) * RAY_STAGGER_S + RAY_DURATION_S) * 1000
 
-export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, cardRef, vw, vh }) {
+export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, cardRef, vw, vh, onScratched }) {
   const [drawn, setDrawn] = useState(false)
   const [scratchHintVisible, setScratchHintVisible] = useState(true)
   const [hasScratched, setHasScratched] = useState(false)
   const [arrowDrawn, setArrowDrawn] = useState(false)
   const [raysDrawn, setRaysDrawn] = useState(false)
   const [showScratchDemo, setShowScratchDemo] = useState(false)
+  // Pil + smilefjes nederst: vises etter skraping — på mobil (ingen
+  // skraping, videoen vises direkte) med en gang.
+  const revealed = hasScratched || isMobile
   useMotionValueEvent(newOmOp, "change", (v) => {
     if (v > 0.5) setDrawn(true)
     else setDrawn(false)
@@ -84,8 +87,16 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
   // smalere også, som bryter teksten over enda flere linjer og gjør den enda
   // høyere. Behold derfor full bredde, men beskjær bildet til en fast,
   // begrenset høyde (~36% av tilgjengelig korthøyde) med object-fit: cover.
-  const mobileImgW   = Math.min(Math.round(vw * 0.85), 380)
-  const mobileImgCapH = Math.round(availCardH * 0.36)
+  // Oppdatert: på telefon vises videoen direkte (ingen skraping), og den er
+  // stående (720×1280) — en lav, bred boks kuttet hodet. Gi bildet all
+  // høyden teksten under ikke trenger (~370px), men aldri høyere enn
+  // tegningens naturlige format, og aldri lavere enn de opprinnelige 36 %.
+  const mobileImgW    = Math.min(Math.round(vw * 0.85), 380)
+  const MOBILE_TEXT_H = 370
+  const mobileImgCapH = Math.round(Math.min(
+    mobileImgW * imgAspect,
+    Math.max(availCardH * 0.36, availCardH - MOBILE_TEXT_H),
+  ))
 
   return (
     <motion.div
@@ -111,7 +122,7 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
             hjørne i stedet — der er bakgrunnen blå, så lys tekst i stedet,
             med en svak skygge for lesbarhet mot det travle illustrasjons-
             motivet under. */}
-        {scratchHintVisible && (
+        {scratchHintVisible && !isMobile && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: drawn ? 1 : 0 }}
@@ -245,8 +256,12 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
               topSrc={drawingBlue}
               bottomSrc={aashildTak}
               alt="Åshild Færøy"
-              onScratchStart={() => { setScratchHintVisible(false); setHasScratched(true) }}
+              onScratchStart={() => { setScratchHintVisible(false); setHasScratched(true); onScratched?.() }}
               triggerHint={showScratchDemo}
+              // Mobil: skraping på en liten skjerm (der fingeren også skal
+              // scrolle) ga lite — vis videoen direkte, med hodet i bildet.
+              disabled={isMobile}
+              objectPosition={isMobile ? "center 18%" : undefined}
               style={{ height: isMobile ? mobileImgCapH : desktopCardH }}
             />
           </div>
@@ -268,7 +283,10 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
             padding: "clamp(32px, 4vw, 48px)",
             justifyContent: "flex-start",
             paddingTop: "clamp(10px, 2vw, 30px)",
-            paddingBottom: "clamp(10px, 2vw, 30px)",
+            // Mobil: den blå markeringen bak sitatet stikker ~20px under
+            // teksten, og smilefjeset ligger nederst i hjørnet — uten
+            // ekstra luft ble begge kuttet av kortkanten.
+            paddingBottom: isMobile ? 44 : "clamp(10px, 2vw, 30px)",
             gap: "clamp(10px, 1vw, 18px)",
             overflowX: "hidden",
             // Sikkerhetsnett: hvis teksten likevel blir høyere enn plassen
@@ -408,14 +426,14 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
               height="20"
               style={{ display: "block", overflow: "visible" }}
               initial={{ opacity: 0 }}
-              animate={{ opacity: hasScratched ? 1 : 0 }}
+              animate={{ opacity: revealed ? 1 : 0 }}
               transition={{ duration: 0.5, delay: 0.15 }}
             >
               <motion.g
-                animate={hasScratched ? { y: [0, 5, 0] } : { y: 0 }}
+                animate={revealed ? { y: [0, 5, 0] } : { y: 0 }}
                 transition={{
                   duration: 1.4,
-                  repeat: hasScratched ? Infinity : 0,
+                  repeat: revealed ? Infinity : 0,
                   ease: "easeInOut",
                 }}
               >
@@ -442,7 +460,7 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
                 cy={5.5}
                 fill="rgba(55, 90, 160, 0.6)"
                 initial={{ r: 0, opacity: 0 }}
-                animate={{ r: hasScratched ? 1.4 : 0, opacity: hasScratched ? 1 : 0 }}
+                animate={{ r: revealed ? 1.4 : 0, opacity: revealed ? 1 : 0 }}
                 transition={{ duration: 0.1, delay: 0.35 }}
               />
               <motion.circle
@@ -450,7 +468,7 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
                 cy={5.8}
                 fill="rgba(55, 90, 160, 0.6)"
                 initial={{ r: 0, opacity: 0 }}
-                animate={{ r: hasScratched ? 1.2 : 0, opacity: hasScratched ? 1 : 0 }}
+                animate={{ r: revealed ? 1.2 : 0, opacity: revealed ? 1 : 0 }}
                 transition={{ duration: 0.1, delay: 0.4 }}
               />
               <motion.path
@@ -460,7 +478,7 @@ export default function OmMegSeksjon({ isMobile, isTablet, newOmOp, frameInset, 
                 strokeWidth="1.1"
                 strokeLinecap="round"
                 initial={{ pathLength: 0 }}
-                animate={{ pathLength: hasScratched ? 1 : 0 }}
+                animate={{ pathLength: revealed ? 1 : 0 }}
                 transition={{ duration: 0.65, ease: "easeInOut", delay: 0.5 }}
               />
             </svg>
